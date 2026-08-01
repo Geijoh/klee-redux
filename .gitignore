@@ -1,6 +1,7 @@
 # Logs
 logs
 *.log
+.DS_Store
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -87,6 +88,9 @@ out
 # ignore all the dist/ folders but keep the dist/klee.min.js
 dist/*
 !dist/klee.min.js
+
+# Complete static-site artifact generated for deployment
+site-dist/
 
 # Gatsby files
 .cache/

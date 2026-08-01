@@ -1,0 +1,81 @@
+name: Deploy Hostinger site
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static site
+        run: npm run build:site
+
+      - name: Store site for publication
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: hostinger-site-${{ github.sha }}
+          path: site-dist
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Download built site
+        uses: actions/download-artifact@v8
+        with:
+          name: hostinger-site-${{ github.sha }}
+          path: site-dist
+
+      - name: Publish deploy branch
+        env:
+          DEPLOY_BRANCH: deploy
+        run: |
+          set -euo pipefail
+
+          deploy_worktree="${RUNNER_TEMP}/klee-deploy"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git worktree add --detach "${deploy_worktree}" HEAD
+
+          cd "${deploy_worktree}"
+          git switch --orphan "${DEPLOY_BRANCH}"
+          cp -R "${GITHUB_WORKSPACE}/site-dist/." .
+          git add --all
+          git commit -m "Deploy ${GITHUB_SHA}"
+          git push --force origin "HEAD:${DEPLOY_BRANCH}"
