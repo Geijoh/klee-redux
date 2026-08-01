@@ -5,7 +5,8 @@
     "scripts": {
         "dev": "webpack serve --config webpack.dev.js",
         "docs": "webpack serve --config webpack.docs.js",
-        "build": "webpack --config webpack.prod.js"
+        "build": "webpack --config webpack.prod.js",
+        "build:site": "npm run build && node scripts/build-site.js"
     },
     "files": [
         "/dist"
