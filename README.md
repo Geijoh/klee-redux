@@ -1,6 +1,7 @@
-# Klee
+# Klee: Redux
 A standalone Unreal Engine Blueprint visualizer for the web, with some modifications to suit its use on my portfolio site: www.kris-j.com.
 
+These modifications include:
 *(This is still a work-in-progress. The following may change, shrink, or grow)*
 * Editor-facing Node Names
 * Ability to open referenced Material Functions
