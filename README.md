@@ -1,6 +1,48 @@
 # Klee
 A standalone Unreal Engine Blueprint visualizer for the web.
 
+## Material graphs
+
+Klee accepts Unreal Material graph clipboard text, including the nested
+`MaterialExpression` object blocks produced by the editor. Material nodes use
+editor-facing captions when those values are serialized. This includes
+parameter names, custom descriptions, common expression names, and the exact
+asset name of a Material Function call. Unknown expression types receive a
+readable title derived from their Unreal class name.
+
+The Material Function call stores both the asset name and canonical Unreal
+object path. The referenced function graph is not embedded in the parent
+clipboard data; a host can use the activation event below to resolve and load a
+separately supplied function graph.
+
+## Node activation
+
+Double-clicking a rendered node dispatches a bubbling, cancelable
+`klee:nodeactivate` `CustomEvent` from the canvas. Its `detail` is a plain,
+serializable object:
+
+```js
+const canvas = document.querySelector("canvas.klee");
+
+canvas.addEventListener("klee:nodeactivate", (event) => {
+    const {
+        nodeName,
+        nodeClass,
+        title,
+        expressionClass,
+        assetName,
+        objectPath,
+    } = event.detail;
+
+    // assetName and objectPath are present for Material Function calls.
+});
+```
+
+Every node activation includes `nodeName`, `nodeClass`, and `title`.
+`expressionClass` is included for Material expression nodes, while `assetName`
+and `objectPath` are included only when the node references a Material Function.
+The exported `KLEE_NODE_ACTIVATE_EVENT` constant contains the event name.
+
 ## Build minified JS
 To build a minified JavaScript file of klee you have to install the development dependencies:
 ```bash

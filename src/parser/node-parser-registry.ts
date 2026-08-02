@@ -27,6 +27,7 @@ import { TimelineNodeParser } from "./node-parsers/timeline-node.parser";
 import { TunnelNodeParser } from "./node-parsers/tunnel-node.parser";
 import { VariableNodeParser } from "./node-parsers/variable-node.parser";
 import { NodeParser } from "./node.parser";
+import { MaterialGraphNodeParser } from "./node-parsers/material-graph-node.parser";
 
 
 export class NodeParserRegistry {
@@ -65,6 +66,9 @@ export class NodeParserRegistry {
         [UnrealNodeClass.TUNNEL]: () => new TunnelNodeParser(),
         [UnrealNodeClass.CREATE_WIDGET]: () => new CreateWidgetNodeParser(),
         [UnrealNodeClass.CREATE_OBJECT]: () => new CreateObjectNodeParser(),
+        [UnrealNodeClass.MATERIAL_GRAPH_NODE]: () => new MaterialGraphNodeParser(),
+        [UnrealNodeClass.MATERIAL_GRAPH_NODE_CUSTOM]: () => new MaterialGraphNodeParser(),
+        [UnrealNodeClass.MATERIAL_GRAPH_NODE_ROOT]: () => new MaterialGraphNodeParser(),
     }
 
     public constructor() {}

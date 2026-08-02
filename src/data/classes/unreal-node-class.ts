@@ -33,4 +33,7 @@ export enum UnrealNodeClass {
     TUNNEL = "/Script/BlueprintGraph.K2Node_Tunnel",
     CREATE_WIDGET = "/Script/UMGEditor.K2Node_CreateWidget",
     CREATE_OBJECT = "/Script/BlueprintGraph.K2Node_GenericCreateObject",
+    MATERIAL_GRAPH_NODE = "/Script/UnrealEd.MaterialGraphNode",
+    MATERIAL_GRAPH_NODE_CUSTOM = "/Script/UnrealEd.MaterialGraphNode_Custom",
+    MATERIAL_GRAPH_NODE_ROOT = "/Script/UnrealEd.MaterialGraphNode_Root",
 }

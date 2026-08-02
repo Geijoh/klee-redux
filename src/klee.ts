@@ -1,5 +1,7 @@
 import { Application } from "./application";
 
+export { KLEE_NODE_ACTIVATE_EVENT, KleeNodeActivateDetail } from "./events";
+
 export class Klee {
 
     private app: Application;

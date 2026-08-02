@@ -10,6 +10,7 @@ import { Container } from "../container";
 import { ErrorBar } from "../error-bar";
 import { NodeInfoIcon } from "../node-info-icon";
 import { IconLibrary } from "../utils/icon-library";
+import { KleeNodeActivateDetail } from "../../events";
 
 
 export abstract class NodeControl extends Container {
@@ -107,6 +108,26 @@ export abstract class NodeControl extends Container {
         const title = this._node.title || "";
         const subtitles = (this._node.subTitles || []).map(s => s.text).join(" ");
         return `${title} ${subtitles}`.trim();
+    }
+
+    /** Returns a fresh, serializable snapshot; callers never receive the internal node object. */
+    public get activationDetail(): KleeNodeActivateDetail {
+        const detail: KleeNodeActivateDetail = {
+            nodeName: this._node.name,
+            nodeClass: this._node.class,
+            title: this._node.title || "",
+        };
+
+        if (this._node.materialExpressionClass) {
+            detail.expressionClass = this._node.materialExpressionClass;
+        }
+
+        if (this._node.materialFunction) {
+            detail.assetName = this._node.materialFunction.assetName;
+            detail.objectPath = this._node.materialFunction.objectPath;
+        }
+
+        return detail;
     }
 
     protected get node(): Node {
