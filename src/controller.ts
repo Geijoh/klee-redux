@@ -7,6 +7,7 @@ import { Control } from "./controls/control";
 import { UserControl } from "./controls/user-control";
 import { InteractableUserControl } from "./controls/interactable-user-control";
 import { Scene } from "./scene";
+import { KLEE_NODE_ACTIVATE_EVENT, KleeNodeActivateDetail } from "./events";
 
 export interface KeyAction {
     keycode: string
@@ -57,6 +58,7 @@ export class Controller {
         element.onkeydown = (ev) => this.onKeydown(ev);
         element.oncontextmenu = (ev) => this.onContextMenu(ev);
         element.addEventListener('wheel', (ev) => this.onWheel(ev), { passive: false });
+        element.addEventListener('dblclick', (ev) => this.onDoubleClick(ev));
 
         this.registerAction({
             ctrl: true,
@@ -220,6 +222,23 @@ export class Controller {
         }
      }
 
+    onDoubleClick(ev: MouseEvent) {
+        if (ev.button !== MouseButton.Left) return;
+
+        const mouseAbsolutePos = this.getAbsoluteMousePosition(ev);
+        const nodes = this.getIntersectingNodeControls(mouseAbsolutePos, new Vector2(0, 0))
+            .sort((a, b) => b.ZIndex - a.ZIndex);
+        const node = nodes[0];
+        if (!node) return;
+
+        const detail: KleeNodeActivateDetail = node.activationDetail;
+        this._element.dispatchEvent(new CustomEvent<KleeNodeActivateDetail>(KLEE_NODE_ACTIVATE_EVENT, {
+            bubbles: true,
+            cancelable: true,
+            detail,
+        }));
+    }
+
     onContextMenu(ev: MouseEvent) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -293,4 +312,3 @@ export class Controller {
 function InteractableControl() {
     throw new Error("Function not implemented.");
 }
-

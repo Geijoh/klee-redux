@@ -1,6 +1,7 @@
 import { Vector2 } from "../../math/vector2";
 import { CustomProperty } from "../custom-property";
 import { UnrealNodeClass } from "../classes/unreal-node-class";
+import { MaterialFunctionReference } from "../material-function-reference";
 
 
 
@@ -22,4 +23,6 @@ export interface Node {
     errorType?: number;
     errorMsg?: string;
     latent: boolean;
+    materialExpressionClass?: string;
+    materialFunction?: MaterialFunctionReference;
 }

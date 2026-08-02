@@ -1,0 +1,13 @@
+Begin Object Class=/Script/UnrealEd.MaterialGraphNode Name="MaterialGraphNode_2"
+   Begin Object Class=/Script/Engine.MaterialExpressionMaterialFunctionCall Name="MaterialExpressionMaterialFunctionCall_0"
+   End Object
+   Begin Object Name="MaterialExpressionMaterialFunctionCall_0"
+      MaterialFunction="/Script/Engine.MaterialFunction'/Engine/Functions/UserInterface/GetUserInterfaceUV.GetUserInterfaceUV'"
+      FunctionOutputs(0)=(Output=(OutputName="9-Slice UV"))
+   End Object
+   MaterialExpression="/Script/Engine.MaterialExpressionMaterialFunctionCall'MaterialExpressionMaterialFunctionCall_0'"
+   NodePosX=-848
+   NodePosY=272
+   NodeGuid=391191243546254EDABA048A11F91058
+   CustomProperties Pin (PinId=AA157449274928D3424FD2AC677281D1,PinName="9-Slice UV",Direction="EGPD_Output",PinType.PinCategory="",)
+End Object
