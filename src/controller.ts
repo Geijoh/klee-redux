@@ -226,8 +226,12 @@ export class Controller {
         if (ev.button !== MouseButton.Left) return;
 
         const mouseAbsolutePos = this.getAbsoluteMousePosition(ev);
+        const sceneNodes = this.app.scene.nodes;
         const nodes = this.getIntersectingNodeControls(mouseAbsolutePos, new Vector2(0, 0))
-            .sort((a, b) => b.ZIndex - a.ZIndex);
+            .sort((a, b) => {
+                const zIndexDifference = b.ZIndex - a.ZIndex;
+                return zIndexDifference || sceneNodes.indexOf(b) - sceneNodes.indexOf(a);
+            });
         const node = nodes[0];
         if (!node) return;
 

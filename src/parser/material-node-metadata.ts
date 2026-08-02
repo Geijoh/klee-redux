@@ -87,7 +87,7 @@ function parseObjectPath(value: string | undefined): string | undefined {
     if (!value) return undefined;
 
     const quotedPath = value.match(/'([^']+)'/);
-    if (quotedPath) return quotedPath[1];
+    if (quotedPath) return parseSerializedString(quotedPath[1]);
 
     return parseSerializedString(value);
 }
@@ -184,7 +184,9 @@ export function resolveMaterialNodeMetadata(lines: string[], nodeClass: string):
         return { title: parameterName, expressionClass };
     }
 
-    const description = parseSerializedString(findProperty(lines, ["Description", "Desc"]));
+    const description = expressionClassName === "MaterialExpressionCustom"
+        ? parseSerializedString(findProperty(lines, ["Description"]))
+        : undefined;
     if (description) {
         return { title: description, expressionClass };
     }
