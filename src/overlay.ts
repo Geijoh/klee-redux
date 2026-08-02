@@ -481,6 +481,9 @@ export class Overlay {
                 ? "Return preview targeting to the Material output (W)"
                 : "Preview the selected Material node (W)";
             this.previewStatus.textContent = `Preview target: ${state.title || state.nodeName}. Pixel rendering is unavailable in this viewer.`;
+        } else if (state.rootNodeName) {
+            this.previewButton.title = "Preview the selected Material node (W)";
+            this.previewStatus.textContent = "Preview target is the Material output. Select one Material node and choose Preview. Pixel rendering is unavailable in this viewer.";
         } else {
             this.previewButton.title = "Mark the selected Material node as the preview target (W)";
             this.previewStatus.textContent = "No Material output node was pasted. Select one Material node to mark a preview target. Pixel rendering is unavailable in this viewer.";
