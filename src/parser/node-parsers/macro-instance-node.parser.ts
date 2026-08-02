@@ -10,6 +10,7 @@ import { insertSpacesBetweenCapitalizedWords } from "../../utils/text-utils";
 import { MacroInstanceNode } from "../../data/nodes/macro-instance.node";
 import { HeadlessNodeControl } from "../../controls/nodes/headless-node-control";
 import { BlueprintParserUtils } from "../blueprint-parser-utils";
+import { getAssetNameFromObjectPath, GraphReference } from "../../data/graph-reference";
 
 export class MacroInstanceNodeParser extends NodeParser {
 
@@ -27,6 +28,18 @@ export class MacroInstanceNodeParser extends NodeParser {
                 const parser = new MacroGraphReferenceParser();
                 node.macroGraphReference = parser.parse(value);
                 node.title = insertSpacesBetweenCapitalizedWords(node.macroGraphReference.macroFuncName);
+                const objectPath = node.macroGraphReference.graphBlueprintPath;
+                const reference: GraphReference = {
+                    kind: "blueprint-macro",
+                    displayName: node.title || node.macroGraphReference.macroFuncName,
+                    assetName: getAssetNameFromObjectPath(objectPath),
+                    objectPath,
+                    graphName: node.macroGraphReference.macroFuncName,
+                    guid: node.macroGraphReference.graphGuid,
+                    builtin: Boolean(objectPath?.startsWith("/Engine/") || objectPath?.startsWith("/Script/")),
+                    navigable: Boolean(objectPath && !objectPath.startsWith("/Script/")),
+                };
+                node.references = [reference];
             },
         });
     }
@@ -56,7 +69,8 @@ export class MacroInstanceNodeParser extends NodeParser {
             case 'WhileLoop': return IconLibrary.LOOP;
             case 'Gate': return IconLibrary.GATE;
             case 'FlipFlop': return IconLibrary.FLIPFLOP;
-            case 'Do': return IconLibrary.DO_N;
+            case 'Do':
+            case 'Do N': return IconLibrary.DO_N;
             case 'DoOnce': return IconLibrary.DO_ONCE;
             case 'IsValid': return IconLibrary.IS_VALID;
             default: return IconLibrary.MACRO;

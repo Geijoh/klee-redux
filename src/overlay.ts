@@ -59,6 +59,22 @@ const OVERLAY_CSS = `
 .${OVERLAY_CLASS} .klee-toolbar button:active {
     background: rgba(255,255,255,0.10);
 }
+.${OVERLAY_CLASS} .klee-toolbar button:focus-visible {
+    outline: 2px solid #73b9ff;
+    outline-offset: 2px;
+}
+.${OVERLAY_CLASS} canvas:focus-visible {
+    outline: 2px solid #73b9ff;
+    outline-offset: -2px;
+}
+.${OVERLAY_CLASS} .klee-toolbar button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+.${OVERLAY_CLASS} .klee-toolbar button.klee-preview-active {
+    background: rgba(69, 166, 255, 0.2);
+    color: #9ed2ff;
+}
 .${OVERLAY_CLASS} .klee-toolbar button.klee-toggle.on {
     background: rgba(249, 115, 0, 0.18);
     color: #ffb070;
@@ -172,6 +188,17 @@ const OVERLAY_CSS = `
 .${OVERLAY_CLASS} .klee-toast.show {
     opacity: 1;
 }
+.${OVERLAY_CLASS} .klee-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 .${OVERLAY_CLASS} .klee-context-menu {
     position: absolute;
     min-width: 180px;
@@ -254,6 +281,8 @@ interface ToolbarButton {
 
 export class Overlay {
 
+    private static previewStatusCounter: number = 0;
+
     private app: Application;
     private root: HTMLDivElement;
     private toolbar: HTMLDivElement;
@@ -265,16 +294,21 @@ export class Overlay {
     private minimapCanvas: HTMLCanvasElement;
     private contextMenu: HTMLDivElement;
     private toast: HTMLDivElement;
+    private previewButton: HTMLButtonElement;
+    private previewStatus: HTMLDivElement;
+    private previewStatusId: string;
 
     private searchMatches: number[] = [];
     private searchIndex: number = -1;
 
     constructor(app: Application) {
         this.app = app;
+        this.previewStatusId = `klee-preview-status-${++Overlay.previewStatusCounter}`;
         Overlay.injectStylesOnce();
 
         this.wrapCanvas();
         this.buildToolbar();
+        this.buildPreviewStatus();
         this.buildSearchBox();
         this.buildMinimap();
         this.buildContextMenu();
@@ -351,6 +385,20 @@ export class Overlay {
         searchBtn.addEventListener("click", () => this.toggleSearch());
         this.toolbar.appendChild(searchBtn);
 
+        this.previewButton = this.makeButton("Preview", "Preview the selected Material node (W)");
+        this.previewButton.tabIndex = 0;
+        this.previewButton.classList.add("klee-preview-toggle");
+        this.previewButton.setAttribute("data-klee-preview-control", "true");
+        this.previewButton.setAttribute("aria-label", "Preview selected Material node");
+        this.previewButton.setAttribute("aria-keyshortcuts", "W");
+        this.previewButton.setAttribute("aria-pressed", "false");
+        this.previewButton.setAttribute("aria-describedby", this.previewStatusId);
+        this.previewButton.addEventListener("click", () => {
+            const state = this.app.togglePreviewSelected();
+            this.updatePreviewControls(state);
+        });
+        this.toolbar.appendChild(this.previewButton);
+
         const shareBtn = this.makeButton("Share", "Copy share link");
         shareBtn.addEventListener("click", async () => {
             await this.app.copyShareLink();
@@ -375,6 +423,68 @@ export class Overlay {
         this.toolbar.appendChild(animateBtn);
 
         this.root.appendChild(this.toolbar);
+    }
+
+    private buildPreviewStatus() {
+        this.previewStatus = document.createElement("div");
+        this.previewStatus.id = this.previewStatusId;
+        this.previewStatus.className = "klee-visually-hidden";
+        this.previewStatus.setAttribute("role", "status");
+        this.previewStatus.setAttribute("aria-live", "polite");
+        this.root.appendChild(this.previewStatus);
+        this.app.element.addEventListener("klee:previewchange", (event: CustomEvent) =>
+            this.updatePreviewControls(event.detail));
+        this.updatePreviewControls();
+    }
+
+    private updatePreviewControls(previewState?) {
+        if (!this.previewButton || !this.previewStatus) return;
+        const inspection = this.app.inspection;
+        const state = previewState || this.app.getPreviewState();
+        const available = Boolean(inspection?.preview.targetSelectionAvailable);
+        const selectedNodes = this.app.scene.selectedNodes;
+        const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : undefined;
+        const useRootAction = Boolean(state.active && (
+            selectedNodes.length === 0 ||
+            selectedNode?.name === state.nodeName ||
+            selectedNode?.name === state.rootNodeName
+        ));
+        const selectionInvalid = selectedNodes.length > 1 || (selectedNodes.length === 0 && !state.active);
+        this.previewButton.disabled = !available || selectionInvalid;
+        this.previewButton.classList.toggle("klee-preview-active", state.active);
+        this.previewButton.setAttribute("aria-pressed", state.active ? "true" : "false");
+        this.previewButton.textContent = useRootAction ? "Use root" : "Preview";
+        this.previewButton.setAttribute("aria-label", useRootAction
+            ? "Stop previewing selected node and use Material output"
+            : "Preview selected Material node");
+
+        if (state.reason === "multiple-selection") {
+            this.previewStatus.textContent = "Select exactly one Material node to choose a preview target.";
+        } else if (state.reason === "no-selection") {
+            this.previewStatus.textContent = state.rootNodeName
+                ? "No node is selected; the preview target is the Material output."
+                : "No node is selected and this pasted graph has no Material output node.";
+        } else if (state.reason === "unsupported-node") {
+            this.previewStatus.textContent = "The selected item is not a previewable Material node.";
+        } else if (!available) {
+            this.previewButton.title = "Node preview is available for Material graphs only";
+            this.previewStatus.textContent = "Node preview is unavailable because this is not a Material graph.";
+        } else if (selectedNodes.length > 1) {
+            this.previewButton.title = "Select exactly one Material node to preview";
+        } else if (selectedNodes.length === 0 && !state.active) {
+            this.previewButton.title = "Select one Material node to preview";
+        } else if (state.active) {
+            this.previewButton.title = useRootAction
+                ? "Return preview targeting to the Material output (W)"
+                : "Preview the selected Material node (W)";
+            this.previewStatus.textContent = `Preview target: ${state.title || state.nodeName}. Pixel rendering is unavailable in this viewer.`;
+        } else if (state.rootNodeName) {
+            this.previewButton.title = "Preview the selected Material node (W)";
+            this.previewStatus.textContent = "Preview target is the Material output. Select one Material node and choose Preview. Pixel rendering is unavailable in this viewer.";
+        } else {
+            this.previewButton.title = "Mark the selected Material node as the preview target (W)";
+            this.previewStatus.textContent = "No Material output node was pasted. Select one Material node to mark a preview target. Pixel rendering is unavailable in this viewer.";
+        }
     }
 
     private makeButton(label: string, title: string): HTMLButtonElement {
@@ -549,6 +659,7 @@ export class Overlay {
 
     public onSceneRefreshed() {
         this.onCameraChanged();
+        this.updatePreviewControls();
     }
 
     private drawMinimap() {
@@ -663,6 +774,8 @@ export class Overlay {
         addSep();
         addItem("Search nodes", "Ctrl+F", () => this.toggleSearch(true));
         addItem("Select all nodes", "Ctrl+A", () => { this.app.selectAllNodes(); });
+        addItem("Preview selected node", "W", () => { this.app.togglePreviewSelected(); },
+            !this.app.inspection?.preview.targetSelectionAvailable);
         addSep();
         addItem("Copy blueprint", "Ctrl+C", async () => {
             await this.app.copyAllToClipboard();

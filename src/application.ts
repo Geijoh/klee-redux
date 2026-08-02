@@ -5,6 +5,9 @@ import { BlueprintParser } from "./parser/blueprint-parser";
 import { Scene } from "./scene";
 import { Vector2 } from "./math/vector2";
 import { decodeBlueprintFromHash, decodeBlueprintFromHashAsync, encodeBlueprintToHash } from "./utils/share-utils";
+import { KleeDisplayOptions, KleeGraphInspection } from "./data/graph-inspection";
+import { inspectUnrealGraph, isMaterialGraphNodeClass } from "./parser/graph-inspector";
+import { KLEE_PREVIEW_CHANGE_EVENT, KleePreviewChangeDetail } from "./events";
 
 export class Application {
 
@@ -15,6 +18,8 @@ export class Application {
     private _parser: BlueprintParser;
     private _element: HTMLCanvasElement;
     private _overlay: Overlay;
+    private _inspection: KleeGraphInspection;
+    private _previewNodeName?: string;
 
     private static firefox: boolean;
     private static instances: Array<Application> = [];
@@ -66,6 +71,16 @@ export class Application {
             keycode: 'KeyV',
             callback: this.pasteClipboardContentToCanvas.bind(this)
         });
+        this._controller.registerAction({
+            ctrl: false,
+            keycode: 'KeyW',
+            callback: (event) => {
+                if (event.altKey || event.metaKey || event.shiftKey || event.repeat) return false;
+                if (!this._inspection?.preview.targetSelectionAvailable) return false;
+                this.togglePreviewSelected();
+                return true;
+            },
+        });
         this._element.onpaste = (ev) => this.onPaste(ev);
 
         window.addEventListener('resize', this.refresh.bind(this), false);
@@ -79,6 +94,10 @@ export class Application {
         return this._canvas;
     }
 
+    public get inspection(): KleeGraphInspection {
+        return this._inspection;
+    }
+
     static get isFirefox() {
         return this.firefox;
     }
@@ -90,8 +109,6 @@ export class Application {
     }
 
     private initializeHtmlAttributes() {
-        this._element.style.outline = 'none';
-
         let attrPaste = this._element.getAttributeNode("data-klee-paste");
         this.allowPaste = attrPaste?.value == "true" || false;
 
@@ -212,8 +229,7 @@ export class Application {
         if (nodeIndex < 0 || nodeIndex >= nodes.length) return;
         const node = nodes[nodeIndex];
 
-        nodes.forEach(n => n.selected = false);
-        node.selected = true;
+        this._scene.selectOnly(node);
 
         const scale = this._scene.camera.scale;
         const cx = -(node.position.x + node.size.x / 2);
@@ -223,8 +239,81 @@ export class Application {
     }
 
     public selectAllNodes() {
-        this._scene.nodes.forEach(n => n.selected = true);
+        this._scene.selectAllNodes();
         this._scene.refresh();
+    }
+
+    public getPreviewState(): KleePreviewChangeDetail {
+        const rootNodeName = this._inspection?.rootNodeName;
+        const target = this._previewNodeName
+            ? this._scene.nodes.find(node => node.name === this._previewNodeName)
+            : this._scene.nodes.find(node => node.name === rootNodeName);
+        const active = Boolean(this._previewNodeName && target);
+        return {
+            active,
+            isPreviewing: active,
+            nodeName: target?.name,
+            title: target?.title,
+            rootNodeName,
+            pixelRenderingAvailable: false,
+            diagnostics: this._inspection ? [
+                ...this._inspection.diagnostics.map(diagnostic => ({ ...diagnostic })),
+                ...this._inspection.preview.diagnostics.map(diagnostic => ({ ...diagnostic })),
+            ] : [],
+        };
+    }
+
+    public togglePreviewSelected(): KleePreviewChangeDetail {
+        if (!this._inspection?.preview.targetSelectionAvailable) {
+            return this.dispatchPreviewChange("unsupported-graph");
+        }
+
+        const selectedNodes = this._scene.selectedNodes;
+        if (selectedNodes.length > 1) {
+            return this.dispatchPreviewChange("multiple-selection");
+        }
+        if (selectedNodes.length === 0) {
+            if (this._previewNodeName) return this.clearPreview("no-selection");
+            return this.dispatchPreviewChange("no-selection");
+        }
+        const selected = this._scene.primarySelectedNode || selectedNodes[0];
+
+        if (!isMaterialGraphNodeClass(selected.nodeClass)) {
+            return this.dispatchPreviewChange("unsupported-node");
+        }
+
+        if (selected.name === this._inspection.rootNodeName) {
+            return this.clearPreview("root-selected");
+        }
+        if (selected.name === this._previewNodeName) {
+            return this.clearPreview("toggled-off");
+        }
+
+        this._previewNodeName = selected.name;
+        this.applyPreviewStyling();
+        this._scene.refresh();
+        return this.dispatchPreviewChange("preview-selected");
+    }
+
+    public clearPreview(reason: KleePreviewChangeDetail["reason"] = "cleared"): KleePreviewChangeDetail {
+        this._previewNodeName = undefined;
+        this.applyPreviewStyling();
+        this._scene.refresh();
+        return this.dispatchPreviewChange(reason);
+    }
+
+    private applyPreviewStyling(): void {
+        const targetName = this._previewNodeName || this._inspection?.rootNodeName;
+        this._scene.nodes.forEach(node => node.previewed = Boolean(targetName && node.name === targetName));
+    }
+
+    private dispatchPreviewChange(reason?: KleePreviewChangeDetail["reason"]): KleePreviewChangeDetail {
+        const detail = { ...this.getPreviewState(), reason };
+        this._element.dispatchEvent(new CustomEvent<KleePreviewChangeDetail>(KLEE_PREVIEW_CHANGE_EVENT, {
+            bubbles: true,
+            detail,
+        }));
+        return detail;
     }
 
     public async copyAllToClipboard(): Promise<void> {
@@ -325,14 +414,18 @@ export class Application {
         this.loadBlueprintIntoScene(text);
     }
 
-    public loadBlueprintIntoScene(text) {
+    public loadBlueprintIntoScene(text: string, options: KleeDisplayOptions = {}): KleeGraphInspection {
         this._scene.unload();
-        const nodes = this._parser.parseBlueprint(text);
+        this._inspection = inspectUnrealGraph(text, options.graph);
+        const nodes = this._parser.parseBlueprint(text, this._inspection);
         this._scene.load(nodes);
+        this._previewNodeName = undefined;
+        this.applyPreviewStyling();
         this.refresh();
 
         this.recenterCamera();
-        
+        this.dispatchPreviewChange();
+        return this._inspection;
     }
 
     recenterCamera() {

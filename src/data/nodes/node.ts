@@ -2,6 +2,7 @@ import { Vector2 } from "../../math/vector2";
 import { CustomProperty } from "../custom-property";
 import { UnrealNodeClass } from "../classes/unreal-node-class";
 import { MaterialFunctionReference } from "../material-function-reference";
+import { GraphReference } from "../graph-reference";
 
 
 
@@ -25,4 +26,5 @@ export interface Node {
     latent: boolean;
     materialExpressionClass?: string;
     materialFunction?: MaterialFunctionReference;
+    references?: GraphReference[];
 }
