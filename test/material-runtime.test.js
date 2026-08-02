@@ -272,6 +272,11 @@ test("Material graphs expose inspection, conservative root inputs, and W preview
     let previewDetail;
     canvas.addEventListener(Klee.KLEE_PREVIEW_CHANGE_EVENT, event => { previewDetail = event.detail; });
     viewer.app.scene.selectOnly(expression);
+    viewer.app.refresh();
+    assert.equal(
+        previewStatus.textContent,
+        "Preview target is the Material output. Select one Material node and choose Preview. Pixel rendering is unavailable in this viewer."
+    );
     viewer.togglePreviewSelected();
     assert.equal(previewDetail.active, true);
     assert.equal(previewDetail.nodeName, expression.name);
