@@ -158,6 +158,22 @@ test("raw nested Material Function data renders with metadata and activation", (
     });
 
     assert.deepEqual(activationDetail, node.activationDetail);
+
+    const topSource = source
+        .replaceAll("MaterialGraphNode_2", "MaterialGraphNode_3")
+        .replaceAll("MaterialExpressionMaterialFunctionCall_0", "MaterialExpressionMaterialFunctionCall_1")
+        .replaceAll("GetUserInterfaceUV", "MF_Topmost");
+    viewer.display(`${source}\n${topSource}`);
+    const topNode = viewer.app.scene.nodes[1];
+    const overlapCamera = viewer.app.scene.camera;
+    canvas.emit("dblclick", {
+        button: 0,
+        clientX: (topNode.position.x + topNode.size.x / 2) * overlapCamera.scale + overlapCamera.position.x,
+        clientY: (topNode.position.y + topNode.size.y / 2) * overlapCamera.scale + overlapCamera.position.y,
+    });
+
+    assert.equal(activationDetail.title, "MF_Topmost");
+    assert.equal(activationDetail.nodeName, "MaterialGraphNode_3");
 });
 
 module.exports = { installBrowserGlobals };

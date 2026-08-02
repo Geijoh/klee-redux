@@ -49,6 +49,9 @@ Every node activation includes `nodeName`, `nodeClass`, and `title`.
 `expressionClass` is included for Material expression nodes, while `assetName`
 and `objectPath` are included only when the node references a Material Function.
 The exported `KLEE_NODE_ACTIVATE_EVENT` constant contains the event name.
+Canvas nodes are not keyboard focus targets. Hosts that use node activation
+must provide an equivalent keyboard-operable control, such as a list of linked
+Material Functions beside the canvas.
 
 ## Build minified JS
 To build a minified JavaScript file of klee you have to install the development dependencies:

@@ -81,6 +81,18 @@ const packageNameMetadata = resolveMaterialNodeMetadata([
 ], "/Script/UnrealEd.MaterialGraphNode");
 assert.equal(packageNameMetadata.materialFunction.assetName, "MF_Border");
 
+const legacyQuotedPathMetadata = resolveMaterialNodeMetadata([
+    "Begin Object Class=/Script/UnrealEd.MaterialGraphNode Name=MaterialGraphNode_0",
+    "Begin Object Class=/Script/Engine.MaterialExpressionMaterialFunctionCall Name=MaterialExpressionMaterialFunctionCall_0",
+    "MaterialFunction=MaterialFunction'\"/Engine/Functions/Engine_MaterialFunctions02/Utility/ObjectPivotPoint.ObjectPivotPoint\"'",
+    "End Object",
+    "End Object",
+], "/Script/UnrealEd.MaterialGraphNode");
+assert.deepEqual(legacyQuotedPathMetadata.materialFunction, {
+    assetName: "ObjectPivotPoint",
+    objectPath: "/Engine/Functions/Engine_MaterialFunctions02/Utility/ObjectPivotPoint.ObjectPivotPoint",
+});
+
 const parameterMetadata = resolveMaterialNodeMetadata([
     "Begin Object Class=/Script/UnrealEd.MaterialGraphNode Name=MaterialGraphNode_0",
     "Begin Object Class=/Script/Engine.MaterialExpressionScalarParameter Name=MaterialExpressionScalarParameter_0",
@@ -93,11 +105,20 @@ assert.equal(parameterMetadata.title, "Border Width");
 const descriptionMetadata = resolveMaterialNodeMetadata([
     "Begin Object Class=/Script/UnrealEd.MaterialGraphNode_Custom Name=MaterialGraphNode_Custom_0",
     "Begin Object Class=/Script/Engine.MaterialExpressionCustom Name=MaterialExpressionCustom_0",
-    "Desc=\"Nine-slice remap\"",
+    "Description=\"Nine-slice remap\"",
     "End Object",
     "End Object",
 ], "/Script/UnrealEd.MaterialGraphNode_Custom");
 assert.equal(descriptionMetadata.title, "Nine-slice remap");
+
+const genericDescriptionMetadata = resolveMaterialNodeMetadata([
+    "Begin Object Class=/Script/UnrealEd.MaterialGraphNode Name=MaterialGraphNode_0",
+    "Begin Object Class=/Script/Engine.MaterialExpressionMultiply Name=MaterialExpressionMultiply_0",
+    "Desc=\"Edge falloff\"",
+    "End Object",
+    "End Object",
+], "/Script/UnrealEd.MaterialGraphNode");
+assert.equal(genericDescriptionMetadata.title, "Multiply");
 
 const knownMetadata = resolveMaterialNodeMetadata([
     "Begin Object Class=/Script/UnrealEd.MaterialGraphNode Name=MaterialGraphNode_0",
