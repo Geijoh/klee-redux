@@ -231,6 +231,11 @@ test("Material graphs expose inspection, conservative root inputs, and W preview
 
     assert.equal(inspection.kind, "material");
     assert.equal(viewer.inspection, inspection);
+    assert.equal(viewer.app._overlay.previewButton.disabled, true);
+    assert.equal(
+        viewer.app._overlay.previewStatus.textContent,
+        "Preview target is the Material output. Select one Material node and choose Preview. Pixel rendering is unavailable in this viewer."
+    );
     assert.deepEqual(inspection.material.rootInputPolicy.activeInputs, ["Final Color", "Opacity"]);
     assert.equal(inspection.preview.pixelRenderingAvailable, false);
     const previewButton = viewer.app._overlay.previewButton;
