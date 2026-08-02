@@ -138,13 +138,12 @@ export class Controller {
             const delta = currentMousePosition.subtract(this._mouseDownData.position);
     
             if (delta.x == 0 && delta.y == 0) {
-                this.app.scene.nodes.forEach(c => c.selected = false);
                 this.selectIntersectingControls(mouseAbsolutePos, new Vector2(0,0));
             }
         }
 
         this._mouseDownData = null;
-        this.app.scene.refresh();
+        this.app.refresh();
     }
 
     onMouseMove(ev: MouseEvent) {
@@ -215,7 +214,7 @@ export class Controller {
         if(this._mouseDownData) {
             if(this._mouseDownData.buttonType === MouseButton.Left) {
 
-                this.app.scene.nodes.forEach(c => c.selected = false);
+                this.app.scene.clearSelection();
                 this.app.scene.refresh();
                 return false;
             }
@@ -234,6 +233,9 @@ export class Controller {
             });
         const node = nodes[0];
         if (!node) return;
+
+        this.app.scene.selectOnly(node);
+        this.app.refresh();
 
         const detail: KleeNodeActivateDetail = node.activationDetail;
         this._element.dispatchEvent(new CustomEvent<KleeNodeActivateDetail>(KLEE_NODE_ACTIVATE_EVENT, {
@@ -269,11 +271,20 @@ export class Controller {
     }
 
     selectIntersectingControls(pos: Vector2, size: Vector2): void {
-        // Unselect all
-        this.app.scene.nodes.forEach(c => c.selected = false);
-
         const intersectingControls = this.getIntersectingNodeControls(pos, size);
-        intersectingControls.forEach(c => c.selected = true);
+        let primary: NodeControl | undefined;
+        if (size.x === 0 && size.y === 0 && intersectingControls.length > 0) {
+            const sceneNodes = this.app.scene.nodes;
+            primary = [...intersectingControls].sort((a, b) => {
+                const zIndexDifference = b.ZIndex - a.ZIndex;
+                return zIndexDifference || sceneNodes.indexOf(b) - sceneNodes.indexOf(a);
+            })[0];
+        }
+        if (primary) {
+            this.app.scene.selectOnly(primary);
+        } else {
+            this.app.scene.selectNodes(intersectingControls);
+        }
     }
 
     getIntersectingNodeControls(pos: Vector2, size: Vector2): NodeControl[] {
@@ -302,7 +313,7 @@ export class Controller {
     }
 
     selectAllNodes() {
-        this.app.scene.nodes.forEach(c => c.selected = true);
+        this.app.scene.selectAllNodes();
         this.app.scene.refresh();
         return true;
     }

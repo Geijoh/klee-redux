@@ -157,7 +157,7 @@ function getRootMaterialTitle(lines: string[]): string {
  * text, so unknown expression classes intentionally use a readable fallback.
  */
 export function resolveMaterialNodeMetadata(lines: string[], nodeClass: string): MaterialNodeMetadata {
-    if (nodeClass === "/Script/UnrealEd.MaterialGraphNode_Root") {
+    if (/(?:^|\.)MaterialGraphNode_Root(?:_|$)/.test(nodeClass)) {
         return { title: getRootMaterialTitle(lines) };
     }
 

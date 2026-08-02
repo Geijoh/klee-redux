@@ -1,14 +1,17 @@
 import { Node } from '../data/nodes/node';
+import { KleeGraphInspection } from '../data/graph-inspection';
 
 export class ParsingNodeData {
 
     private _node: Node;
     private _lines: string[];
     private _unparsedLines: string[];
+    private _graphInspection?: KleeGraphInspection;
 
-    constructor(lines: string[]) {
+    constructor(lines: string[], graphInspection?: KleeGraphInspection) {
         this._lines = Array.from(lines);
         this._unparsedLines = lines.slice(1, lines.length - 1);
+        this._graphInspection = graphInspection;
     }
 
     public get node(): Node {
@@ -25,5 +28,9 @@ export class ParsingNodeData {
 
     public get unparsedLines(): string[] {
         return this._unparsedLines;
+    }
+
+    public get graphInspection(): KleeGraphInspection | undefined {
+        return this._graphInspection;
     }
 }

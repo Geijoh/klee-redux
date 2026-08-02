@@ -20,13 +20,14 @@ export class MacroGraphReferenceParser {
 
             switch(key) {
                 case "MacroGraph":
-                    dataRef.macroFuncName = MacroGraphReferenceParser.extractNodeNameOfMacroGraphStr(
-                        value.substring(value.indexOf("'"))
-                    );
+                    dataRef.macroGraphPath = MacroGraphReferenceParser.extractObjectPath(value);
+                    dataRef.macroFuncName = MacroGraphReferenceParser.extractNodeNameOfMacroGraphStr(dataRef.macroGraphPath);
                     break;
                 case "GraphBlueprint":
+                    dataRef.graphBlueprintPath = MacroGraphReferenceParser.extractObjectPath(value);
                     break;
                 case "GraphGuid":
+                    dataRef.graphGuid = value;
                     break;
             }
         }
@@ -34,12 +35,13 @@ export class MacroGraphReferenceParser {
         return dataRef;
     }
 
+    private static extractObjectPath(value: string): string {
+        const quoted = value.match(/'"?([^']+?)"?'/);
+        return quoted?.[1] || BlueprintParserUtils.parseString(value);
+    }
+
     private static extractNodeNameOfMacroGraphStr(value: string): string {
-        const stringWithoutQuotes = BlueprintParserUtils.parseString(value);
-        const matches = /(?<=\:)\w*/g.exec(stringWithoutQuotes);
-        if(!matches) {
-            return stringWithoutQuotes; 
-        }
-        return matches[0];
+        const separator = value.lastIndexOf(':');
+        return separator >= 0 ? value.substring(separator + 1) : value;
     }
 }

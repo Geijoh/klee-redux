@@ -13,6 +13,7 @@ import { FoldableHeadedNodeControl } from "../../controls/nodes/foldable-headed-
 import { StringFunctionNodeParser } from "./string-function-node.parser";
 import { ArrayFunctionNodeParser } from "./array-function-node.parser";
 import { Constants } from "../../constants";
+import { createBlueprintFunctionReference } from "../../data/graph-reference";
 
 
 export class CallFunctionNodeParser extends NodeParser {
@@ -33,6 +34,8 @@ export class CallFunctionNodeParser extends NodeParser {
                 node.functionReference = parser.parse(value);
 
                 node.title = insertSpacesBetweenCapitalizedWords(findFriendlyName(node.functionReference.memberName));
+
+                node.references = [createBlueprintFunctionReference(node.functionReference, node.title)];
 
                 if(node.functionReference.selfContext === true) {
                     node.subTitles.push({ text: `Target is self context`});

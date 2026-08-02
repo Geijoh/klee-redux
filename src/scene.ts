@@ -23,7 +23,9 @@ export class Scene {
     private _controls: Array<Control>;
     private _nodes: Array<NodeControl>;
     private _pins: Array<PinControl>;
+    private _allPins: Array<PinControl>;
     private _interactables: Array<InteractableUserControl>;
+    private _primarySelectedNode: NodeControl | null = null;
     private _focusedNodeNames: Set<string> | null = null;
     private _hasExecConnections: boolean = false;
 
@@ -36,6 +38,7 @@ export class Scene {
         this._nodes = new Array<NodeControl>();
         this._controls = new Array<Control>();
         this._pins = new Array<PinControl>();
+        this._allPins = new Array<PinControl>();
     }
 
     // TODO: Move this out
@@ -53,6 +56,41 @@ export class Scene {
 
     get interactables() {
         return this._interactables || [];
+    }
+
+    get primarySelectedNode(): NodeControl | null {
+        if (this._primarySelectedNode && this._primarySelectedNode.selected) {
+            return this._primarySelectedNode;
+        }
+        return null;
+    }
+
+    get selectedNodes(): NodeControl[] {
+        return this._nodes.filter(node => node.selected);
+    }
+
+    clearSelection(): void {
+        this._nodes.forEach(node => node.selected = false);
+        this._primarySelectedNode = null;
+    }
+
+    selectOnly(node: NodeControl): void {
+        this.clearSelection();
+        node.selected = true;
+        this._primarySelectedNode = node;
+    }
+
+    selectNodes(nodes: NodeControl[], primary?: NodeControl): void {
+        this.clearSelection();
+        nodes.forEach(node => node.selected = true);
+        this._primarySelectedNode = primary && primary.selected
+            ? primary
+            : (nodes.length === 1 ? nodes[0] : null);
+    }
+
+    selectAllNodes(): void {
+        this._nodes.forEach(node => node.selected = true);
+        this._primarySelectedNode = null;
     }
 
     collectInteractables() {
@@ -157,8 +195,10 @@ export class Scene {
 
     unload() {
         this._pins = new Array<PinControl>();
+        this._allPins = new Array<PinControl>();
         this._nodes = new Array<NodeControl>();
         this._controls = new Array<Control>();
+        this._primarySelectedNode = null;
     }
 
     load(dataNodes: NodeControl[]) {
@@ -192,7 +232,8 @@ export class Scene {
         if (control instanceof Container) {
             for (let child of control.getChildren()) {
                 if (child instanceof PinControl) {
-                    this._pins.push(child);
+                    this._allPins.push(child);
+                    if (child.visible) this._pins.push(child);
                 }
                 if (child instanceof Container) {
                     this.collectPins(child);
@@ -243,7 +284,11 @@ export class Scene {
             if (connectedPins.indexOf(pin.pinProperty.getUniqueName()) >= 0)
                 continue;
 
-            if (pin.pinProperty.isLinked) {
+            const hasMissingTarget = pin.pinProperty.linkedTo.some(link =>
+                !this._allPins.some(candidate =>
+                    candidate.pinProperty.nodeName === link.nodeName &&
+                    candidate.pinProperty.id === link.pinID));
+            if (pin.pinProperty.isLinked && hasMissingTarget) {
                 let partialConnection = new NodePartialConnectionControl(pin);
 
                 this._controls.push(partialConnection);

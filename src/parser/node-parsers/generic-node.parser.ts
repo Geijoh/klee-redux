@@ -12,6 +12,17 @@ import { PinDirection } from "../../data/pin/pin-direction";
 import { PinCategory } from "../../data/pin/pin-category";
 import { StructClass } from "../../controls/utils/color-utils";
 import { NodeParserRegistry } from "../node-parser-registry";
+import { NodeDataReferenceParser } from "../node-data-reference.parser";
+import {
+    createBlueprintFunctionReference,
+    getAssetNameFromObjectPath,
+    GraphReference,
+    parseGraphObjectReference,
+} from "../../data/graph-reference";
+import { prettifyText } from "../../utils/text-utils";
+import { isMaterialGraphNodeClass, isMaterialRootNodeClass } from "../graph-inspector";
+import { MaterialGraphNodeParser } from "./material-graph-node.parser";
+import { MacroGraphReferenceParser } from "../macro-graph-reference.parser";
 
 
 export class GenericNodeParser extends NodeParser {
@@ -42,33 +53,135 @@ export class GenericNodeParser extends NodeParser {
     }
 
     public parse(data: ParsingNodeData): NodeControl {
+        this.parseGenericNodeData(data);
 
+        const particularImplementation = this._parserRegistry.getParser(data.node.class);
+        if(!particularImplementation) {
+            if (isMaterialGraphNodeClass(data.node.class)) {
+                return new MaterialGraphNodeParser().parse(data);
+            }
+            console.info(`There is no particular implementation for class ${data.node.class}. Falling back to the generic node class.`);
+            data.graphInspection?.diagnostics.push({
+                code: "node-generic-fallback",
+                severity: "info",
+                message: `No specialized renderer is registered for '${data.node.class}'; Klee preserved its common properties and pins.`,
+                nodeName: data.node.name,
+            });
+            return new HeadedNodeControl(data.node);
+        }
+
+        const parser: NodeParser = particularImplementation();
+        return parser.parse(data);
+    }
+
+    /** Parse only the common node contract, bypassing specialized parsers. */
+    public parseFallback(data: ParsingNodeData): NodeControl {
+        this.parseGenericNodeData(data);
+        return new HeadedNodeControl(data.node);
+    }
+
+    private parseGenericNodeData(data: ParsingNodeData): void {
         const headerLine = data.lines[0];
         const header = this.parseHeader(headerLine);
 
         data.node = {
             class: header.class,
             name: header.name,
-            title: header.name,
+            title: this.getFallbackTitle(header.class, header.name),
             subTitles: [],
             guid: undefined,
             pos: new Vector2(0, 0),
             sourceText: data.lines.join('\n'),
             customProperties: [],
             latent: false,
+            references: [],
         }
 
         this.parseProperties(data);
         this.parseCustomProperties(data);
+        this.parseCommonGraphReferences(data);
+        this.applyMaterialRootInputPolicy(data);
+    }
 
-        const particularImplementation = this._parserRegistry.getParser(data.node.class);
-        if(!particularImplementation) {
-            console.info(`There is no particular implementation for class ${data.node.class}. Falling back to the generic node class.`);
-            return new HeadedNodeControl(data.node);
+    private applyMaterialRootInputPolicy(data: ParsingNodeData): void {
+        if (!isMaterialRootNodeClass(data.node.class)) return;
+        const activeRootInputs = data.graphInspection?.material?.rootInputPolicy.activeInputs;
+        if (!activeRootInputs) return;
+        const activeInputs = new Set(activeRootInputs.map(input => input.toLowerCase()));
+        for (const property of data.node.customProperties) {
+            if (!(property instanceof PinProperty)) continue;
+            property.hidden = property.hidden || !activeInputs.has((property.name || "").toLowerCase());
         }
+    }
 
-        const parser: NodeParser = particularImplementation();
-        return parser.parse(data);
+    private getFallbackTitle(nodeClass: string | undefined, nodeName: string | undefined): string {
+        if (!nodeClass) return nodeName || "Unknown Node";
+        const classSuffix = nodeClass.substring(nodeClass.lastIndexOf('.') + 1)
+            .replace(/^(?:K2Node_|EdGraphNode_|MaterialGraphNode_?)/, '');
+        return prettifyText(classSuffix || nodeName || "Unknown Node");
+    }
+
+    private parseCommonGraphReferences(data: ParsingNodeData): void {
+        const addReference = (reference: GraphReference): void => {
+            const references = data.node.references || [];
+            if (!references.some(candidate =>
+                candidate.kind === reference.kind &&
+                candidate.objectPath === reference.objectPath &&
+                candidate.graphName === reference.graphName &&
+                candidate.memberName === reference.memberName)) {
+                references.push(reference);
+            }
+            data.node.references = references;
+        };
+        for (const line of data.lines) {
+            if (line.startsWith("FunctionReference=")) {
+                try {
+                    const parsed = new NodeDataReferenceParser().parse(line.substring("FunctionReference=".length));
+                    const displayName = prettifyText(parsed.memberName || "Blueprint Function");
+                    addReference(createBlueprintFunctionReference(parsed, displayName));
+                    if (parsed.memberName) data.node.title = displayName;
+                } catch (_error) {
+                    // A malformed optional reference must not prevent generic node rendering.
+                }
+            }
+
+            if (line.startsWith("MacroGraphReference=")) {
+                try {
+                    const parsed = new MacroGraphReferenceParser().parse(line.substring("MacroGraphReference=".length));
+                    const objectPath = parsed.graphBlueprintPath;
+                    const displayName = prettifyText(parsed.macroFuncName || "Blueprint Macro");
+                    const reference: GraphReference = {
+                        kind: "blueprint-macro",
+                        displayName,
+                        assetName: getAssetNameFromObjectPath(objectPath),
+                        objectPath,
+                        graphName: parsed.macroFuncName,
+                        guid: parsed.graphGuid,
+                        builtin: Boolean(objectPath?.startsWith("/Engine/") || objectPath?.startsWith("/Script/")),
+                        navigable: Boolean(objectPath && !objectPath.startsWith("/Script/")),
+                    };
+                    addReference(reference);
+                    if (parsed.macroFuncName) data.node.title = displayName;
+                } catch (_error) {
+                    // A malformed optional reference must not prevent generic node rendering.
+                }
+            }
+
+            if (line.startsWith("BoundGraph=")) {
+                const parsed = parseGraphObjectReference(line.substring("BoundGraph=".length));
+                const reference: GraphReference = {
+                    kind: "collapsed-graph",
+                    displayName: parsed.graphName || "Collapsed Graph",
+                    assetName: getAssetNameFromObjectPath(parsed.objectPath),
+                    objectPath: parsed.objectPath,
+                    graphName: parsed.graphName,
+                    builtin: Boolean(parsed.objectPath?.startsWith("/Engine/") || parsed.objectPath?.startsWith("/Script/")),
+                    navigable: Boolean(parsed.objectPath && !parsed.objectPath.startsWith("/Script/")),
+                };
+                addReference(reference);
+                if (parsed.graphName) data.node.title = parsed.graphName;
+            }
+        }
     }
 
     private parseHeader(headerLine: string) {

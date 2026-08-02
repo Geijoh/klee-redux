@@ -17,6 +17,8 @@ export abstract class NodeControl extends Container {
 
     private static readonly _SELECTION_COLOR = 'rgb(231,158,0)';
     private static readonly _SELECTION_LINE_WIDTH = 2.5;
+    private static readonly _PREVIEW_COLOR = 'rgb(69,166,255)';
+    private static readonly _PREVIEW_LINE_WIDTH = 3;
 
     private _node: Node;
     protected pins: Array<PinControl> = [];
@@ -30,6 +32,7 @@ export abstract class NodeControl extends Container {
 
 
     private _selected: boolean;
+    private _previewed: boolean;
     protected _stroke: {
         lineWidth: number,
         style: string
@@ -42,6 +45,7 @@ export abstract class NodeControl extends Container {
         this.height = 0;
 
         this._selected = false;
+        this._previewed = false;
         this._stroke = {
             lineWidth: 1,
             style: 'rgb(0,0,0)'
@@ -96,6 +100,22 @@ export abstract class NodeControl extends Container {
         return this._selected;
     }
 
+    public set previewed(isPreviewed: boolean) {
+        this._previewed = isPreviewed;
+    }
+
+    public get previewed(): boolean {
+        return this._previewed;
+    }
+
+    public get nodeClass(): string {
+        return this._node.class;
+    }
+
+    public get title(): string {
+        return this._node.title || "";
+    }
+
     public get sourceText(): string {
         return this._node.sourceText;
     }
@@ -125,6 +145,11 @@ export abstract class NodeControl extends Container {
         if (this._node.materialFunction) {
             detail.assetName = this._node.materialFunction.assetName;
             detail.objectPath = this._node.materialFunction.objectPath;
+        }
+
+        if (this._node.references && this._node.references.length > 0) {
+            detail.references = this._node.references.map(reference => ({ ...reference }));
+            detail.reference = { ...detail.references[0] };
         }
 
         return detail;
@@ -164,7 +189,9 @@ export abstract class NodeControl extends Container {
     }
 
     protected drawStroke(canvas: Canvas2D) {
-        if(this._selected) {
+        if(this._previewed) {
+            canvas.lineWidth(NodeControl._PREVIEW_LINE_WIDTH).strokeStyle(NodeControl._PREVIEW_COLOR);
+        } else if(this._selected) {
             canvas.lineWidth(NodeControl._SELECTION_LINE_WIDTH).strokeStyle(NodeControl._SELECTION_COLOR);
         } else {
             canvas.lineWidth(this._stroke.lineWidth).strokeStyle(this._stroke.style);
