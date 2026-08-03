@@ -300,6 +300,9 @@ export class Overlay {
 
     private searchMatches: number[] = [];
     private searchIndex: number = -1;
+    private readonly listeners = new AbortController();
+    private destroyed: boolean = false;
+    private startupFrameId: number = 0;
 
     constructor(app: Application) {
         this.app = app;
@@ -320,10 +323,33 @@ export class Overlay {
             this.addBadge();
         }
 
-        requestAnimationFrame(() => {
+        this.startupFrameId = requestAnimationFrame(() => {
+            this.startupFrameId = 0;
+            if (this.destroyed) return;
             this.app.refresh();
             this.onSceneRefreshed();
         });
+    }
+
+    /**
+     * Detaches every document, window and canvas listener this overlay installed,
+     * and returns the canvas to the position it held before the overlay wrapped it.
+     */
+    public destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
+        this.listeners.abort();
+        cancelAnimationFrame(this.startupFrameId);
+        this.startupFrameId = 0;
+        const toastTimer = (this.toast as any)?._hideTimer;
+        if (toastTimer) window.clearTimeout(toastTimer);
+
+        const canvas = this.app.element;
+        const parent = this.root?.parentElement;
+        if (parent && canvas.parentElement === this.root) {
+            parent.insertBefore(canvas, this.root);
+        }
+        this.root?.remove();
     }
 
     private static injectStylesOnce() {
@@ -433,7 +459,7 @@ export class Overlay {
         this.previewStatus.setAttribute("aria-live", "polite");
         this.root.appendChild(this.previewStatus);
         this.app.element.addEventListener("klee:previewchange", (event: CustomEvent) =>
-            this.updatePreviewControls(event.detail));
+            this.updatePreviewControls(event.detail), { signal: this.listeners.signal });
         this.updatePreviewControls();
     }
 
@@ -574,7 +600,7 @@ export class Overlay {
             if (!this.contextMenu.contains(ev.target as Node)) {
                 this.hideContextMenu();
             }
-        });
+        }, { signal: this.listeners.signal });
     }
 
     private buildToast() {
@@ -590,12 +616,12 @@ export class Overlay {
                 ev.preventDefault();
                 this.toggleSearch(true);
             }
-        });
+        }, { signal: this.listeners.signal });
         canvas.addEventListener("contextmenu", (ev) => {
             ev.preventDefault();
             this.showContextMenuAt(ev.clientX, ev.clientY);
-        });
-        window.addEventListener("resize", () => this.onSceneRefreshed());
+        }, { signal: this.listeners.signal });
+        window.addEventListener("resize", () => this.onSceneRefreshed(), { signal: this.listeners.signal });
     }
 
     private toggleSearch(force?: boolean) {
@@ -661,6 +687,7 @@ export class Overlay {
     }
 
     public onSceneRefreshed() {
+        if (this.destroyed) return;
         this.onCameraChanged();
         this.updatePreviewControls();
     }

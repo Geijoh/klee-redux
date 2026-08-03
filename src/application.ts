@@ -31,6 +31,8 @@ export class Application {
     private _animationEnabled: boolean = true;
     private _animationStartedAt: number = 0;
     private _animationRafId: number = 0;
+    private readonly _listeners = new AbortController();
+    private _destroyed: boolean = false;
 
     private constructor(element: HTMLCanvasElement) {
         this._element = element;
@@ -83,7 +85,37 @@ export class Application {
         });
         this._element.onpaste = (ev) => this.onPaste(ev);
 
-        window.addEventListener('resize', this.refresh.bind(this), false);
+        window.addEventListener('resize', this.refresh.bind(this), { signal: this._listeners.signal });
+    }
+
+    public get destroyed(): boolean {
+        return this._destroyed;
+    }
+
+    /**
+     * Releases everything this instance holds outside the canvas element: the
+     * animation frame loop, the window and document listeners installed by the
+     * controller and overlay, the parsed scene, and the instance registry slot.
+     * A destroyed instance is inert; `Klee.init` on the same canvas builds a new one.
+     */
+    public destroy() {
+        if (this._destroyed) return;
+        this._destroyed = true;
+
+        cancelAnimationFrame(this._animationRafId);
+        this._animationRafId = 0;
+        this._animationEnabled = false;
+        this._listeners.abort();
+
+        this._element.onpaste = null;
+        this._controller?.destroy();
+        this._overlay?.destroy();
+        this._overlay = undefined;
+        this._scene.unload();
+        this._inspection = undefined;
+        this._previewNodeName = undefined;
+
+        Application.unregisterInstance(this._element);
     }
 
     get scene() {
@@ -153,6 +185,7 @@ export class Application {
     }
 
     public refresh() {
+        if (this._destroyed) return;
         const pixelRatio = window.devicePixelRatio || 1;
         this._canvas.pixelRatio = pixelRatio;
         this._element.width = this._element.offsetWidth * pixelRatio;
@@ -343,6 +376,7 @@ export class Application {
     private startAnimationLoop() {
         this._animationStartedAt = performance.now();
         const tick = (now: number) => {
+            if (this._destroyed) return;
             this._animationTime = now - this._animationStartedAt;
             if (!document.hidden && this.animationEnabled) {
                 // Redraw only; skip layout reflow and overlay updates.
@@ -440,12 +474,25 @@ export class Application {
         Application.instances.push(app);
     }
 
+    /**
+     * Clears the registry slot without shifting the array: the remaining slot
+     * numbers are already stored in other canvases' data-klee-instance attributes.
+     */
+    private static unregisterInstance(element: HTMLCanvasElement) {
+        const id = Number.parseInt(element.getAttribute("data-klee-instance") || "");
+        if (!isNaN(id) && id < Application.instances.length) {
+            Application.instances[id] = undefined;
+        }
+        element.removeAttribute("data-klee-instance");
+    }
+
     public static getInstance(element: HTMLCanvasElement): Application {
         let instanceAttr = element.getAttributeNode("data-klee-instance");
         if (instanceAttr) {
             let id = Number.parseInt(instanceAttr.value);
             if (!isNaN(id) && id < Application.instances.length) {
                 let instance = Application.instances[id];
+                if (instance?.destroyed) return undefined;
                 return instance;
             }
         }
