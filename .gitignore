@@ -92,6 +92,10 @@ dist/*
 # Complete static-site artifact generated for deployment
 site-dist/
 
+# Library bundle the docs dev server and the site build generate on demand.
+# Never commit it: a checked-in copy silently goes stale against src/.
+docs/js/klee.min.js
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js

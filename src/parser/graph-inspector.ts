@@ -8,15 +8,14 @@ import {
 } from "../data/graph-inspection";
 import { readUnrealObjectBlock } from "./unreal-object-block";
 
-const MATERIAL_NODE_PREFIX = "/Script/UnrealEd.MaterialGraphNode";
 const MATERIAL_ROOT_CLASS = "/Script/UnrealEd.MaterialGraphNode_Root";
 const ROOT_INPUT_RULESET = "ue5-common-v1";
 
 export function isMaterialGraphNodeClass(className: string | undefined): boolean {
-    return Boolean(className && (
-        className.startsWith(MATERIAL_NODE_PREFIX) ||
-        /(?:^|\.)MaterialGraphNode(?:_|$)/.test(className)
-    ));
+    // Matches /Script/UnrealEd.MaterialGraphNode, its _Root/_Custom variants, and
+    // plugin subclasses in other packages. A class merely *starting* with the name,
+    // such as MaterialGraphNodeFoo, is a different class and must not match.
+    return Boolean(className && /(?:^|\.)MaterialGraphNode(?:_|$)/.test(className));
 }
 
 export function isMaterialRootNodeClass(className: string | undefined): boolean {
@@ -249,12 +248,26 @@ export function inspectUnrealGraph(source: string, graphHints?: KleeAuthoredGrap
             if (isMaterialGraphNodeClass(header.className)) {
                 materialNodes += 1;
                 if (isMaterialRootNodeClass(header.className)) {
-                    rootNodeName = header.nodeName;
-                    materialSettingLines.push(...block.lines);
-                    for (const line of block.lines) {
-                        if (!line.startsWith("CustomProperties Pin")) continue;
-                        const pinName = parsePinName(line);
-                        if (pinName) serializedRootInputs.push(pinName);
+                    // A Material graph has exactly one output. Keep the first root
+                    // rather than letting a later one silently replace its settings.
+                    if (rootNodeName) {
+                        diagnostics.push({
+                            code: "material-multiple-roots",
+                            severity: "warning",
+                            message: `More than one Material root node was pasted; '${rootNodeName}' is treated as the output and later roots are ignored.`,
+                            nodeName: header.nodeName,
+                        });
+                    } else {
+                        rootNodeName = header.nodeName;
+                        materialSettingLines.push(...block.lines);
+                        for (const line of block.lines) {
+                            if (!line.startsWith("CustomProperties Pin")) continue;
+                            // Root inputs are the material input pins specifically; the
+                            // root block can also carry pins of other categories.
+                            if (!/PinType\.PinCategory="materialinput"/i.test(line)) continue;
+                            const pinName = parsePinName(line);
+                            if (pinName) serializedRootInputs.push(pinName);
+                        }
                     }
                 }
                 hasFunctionBoundary = hasFunctionBoundary || block.lines.some(line =>

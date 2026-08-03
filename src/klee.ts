@@ -53,6 +53,15 @@ export class Klee {
         return this.app.getPreviewState();
     }
 
+    /**
+     * Releases the animation frame loop, window/document listeners and parsed
+     * scene held by this viewer. Hosts that mount Klee repeatedly — single-page
+     * applications especially — must call this when unmounting the canvas.
+     */
+    public destroy(): void {
+        this.app.destroy();
+    }
+
     public static getInstance(canvas: HTMLCanvasElement) {
         let app = Application.getInstance(canvas);
         if (app !== undefined) {

@@ -34,6 +34,7 @@ export class Controller {
     private app: Application;
 
     private hoveredControls: InteractableUserControl[] = [];
+    private readonly _listeners = new AbortController();
 
     constructor(element: HTMLCanvasElement, app: Application) {
 
@@ -57,8 +58,8 @@ export class Controller {
         element.onmouseleave = (ev) => this.onMouseLeave(ev);
         element.onkeydown = (ev) => this.onKeydown(ev);
         element.oncontextmenu = (ev) => this.onContextMenu(ev);
-        element.addEventListener('wheel', (ev) => this.onWheel(ev), { passive: false });
-        element.addEventListener('dblclick', (ev) => this.onDoubleClick(ev));
+        element.addEventListener('wheel', (ev) => this.onWheel(ev), { passive: false, signal: this._listeners.signal });
+        element.addEventListener('dblclick', (ev) => this.onDoubleClick(ev), { signal: this._listeners.signal });
 
         this.registerAction({
             ctrl: true,
@@ -69,6 +70,21 @@ export class Controller {
 
     registerAction(action: KeyAction) {
         this._actions.push(action);
+    }
+
+    /** Detaches every input listener this controller installed on the canvas. */
+    public destroy() {
+        this._listeners.abort();
+        this._element.onmousedown = null;
+        this._element.onmouseup = null;
+        this._element.onmousemove = null;
+        this._element.onmouseenter = null;
+        this._element.onmouseleave = null;
+        this._element.onkeydown = null;
+        this._element.oncontextmenu = null;
+        this._actions = [];
+        this.hoveredControls = [];
+        this._mouseDownData = null;
     }
 
     onKeydown(ev : KeyboardEvent) {

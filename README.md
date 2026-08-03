@@ -74,6 +74,25 @@ compile Unreal expressions or render Material pixels: inspection and preview
 events explicitly report `pixelRenderingAvailable: false`, allowing a host to
 provide an honest unavailable state or attach a compatible renderer.
 
+## Releasing a viewer
+
+`Klee.init` starts an animation frame loop and installs listeners on `window`,
+`document` and the canvas. A host that mounts and unmounts the canvas repeatedly
+— a single-page application, most obviously — must release each viewer, or every
+mount leaves a frame loop and its listeners running:
+
+```js
+const viewer = Klee.init(canvas);
+// ...
+viewer.destroy();
+```
+
+`destroy()` cancels the frame loop, detaches every listener, unloads the parsed
+scene, returns the canvas to the parent it had before the overlay wrapped it,
+and frees the instance registry slot. It is idempotent, `Klee.get()` stops
+returning a destroyed viewer, and the same canvas can be passed to `Klee.init`
+again afterwards.
+
 ## Node activation
 
 Double-clicking a rendered node dispatches a bubbling, cancelable
@@ -158,3 +177,15 @@ the branch root; source files and development dependencies are not published.
 npm install
 npm run dev
 ```
+
+To preview the documentation site against the current source, run:
+
+```bash
+npm run docs
+```
+
+This compiles `src/` straight to `docs/js/klee.min.js`, the path
+`docs/index.html` loads. That file is generated and git-ignored on purpose: a
+committed copy silently goes stale against `src/`, so the demo would show a
+library that no longer matches the code. `npm run build:site` writes the
+production bundle to the same path inside `site-dist/`.
