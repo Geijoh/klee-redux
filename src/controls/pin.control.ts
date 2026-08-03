@@ -140,6 +140,7 @@ export class PinControl extends UserControl {
 /// #endif
 
         canvas.save();
+        if (this.pinProperty.inactive) canvas.getContext().globalAlpha = 0.35;
         let pinCategory = this.pinProperty.category;
         canvas.fillStyle(this._color).strokeStyle(this._color);
 

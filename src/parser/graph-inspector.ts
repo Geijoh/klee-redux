@@ -25,14 +25,20 @@ export function isMaterialRootNodeClass(className: string | undefined): boolean 
     ));
 }
 
+// UI-domain root pins that stay usable under every blend mode. Only the
+// opacity pins are blend-mode dependent: Opacity Mask on Masked, Opacity on the
+// blended modes, and neither on Opaque or ColorTransmittanceOnly.
+const UI_ALWAYS_ACTIVE_ROOT_INPUTS = ["Final Color", "Screen Position", "Front Material"];
+
 const UI_ROOT_INPUTS: { [blendMode: string]: string[] } = {
-    opaque: ["Final Color"],
-    masked: ["Final Color", "Opacity Mask"],
-    translucent: ["Final Color", "Opacity"],
-    additive: ["Final Color", "Opacity"],
-    modulate: ["Final Color", "Opacity"],
-    alphacomposite: ["Final Color", "Opacity"],
-    alphaholdout: ["Final Color", "Opacity"],
+    opaque: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS],
+    colortransmittanceonly: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS],
+    masked: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS, "Opacity Mask"],
+    translucent: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS, "Opacity"],
+    additive: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS, "Opacity"],
+    modulate: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS, "Opacity"],
+    alphacomposite: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS, "Opacity"],
+    alphaholdout: [...UI_ALWAYS_ACTIVE_ROOT_INPUTS, "Opacity"],
 };
 
 interface ObjectHeader {

@@ -115,3 +115,49 @@ test("a second Material root is reported instead of silently replacing the first
 
     viewer.destroy();
 });
+
+const UI_ROOT = blendMode => [
+    'Begin Object Class=/Script/UnrealEd.MaterialGraphNode_Root Name="MaterialGraphNode_Root_0"',
+    'CustomProperties Pin (PinId=R1,PinName="Final Color",PinType.PinCategory="materialinput",)',
+    'CustomProperties Pin (PinId=R2,PinName="Opacity",PinType.PinCategory="materialinput",)',
+    'CustomProperties Pin (PinId=R3,PinName="Opacity Mask",PinType.PinCategory="materialinput",)',
+    'CustomProperties Pin (PinId=R4,PinName="Screen Position",PinType.PinCategory="materialinput",)',
+    'CustomProperties Pin (PinId=R5,PinName="Front Material",PinType.PinCategory="materialinput",)',
+    'End Object',
+].join('\n');
+
+test("UI root inputs gray out per blend mode, matching the editor", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    // Every state below is taken from the UE5 UI-domain result node: the pins
+    // are always present, and only which ones are usable changes.
+    const cases = [
+        { blendMode: "BLEND_Opaque", inactive: ["Opacity", "Opacity Mask"] },
+        { blendMode: "BLEND_ColorTransmittanceOnly", inactive: ["Opacity", "Opacity Mask"] },
+        { blendMode: "BLEND_Masked", inactive: ["Opacity"] },
+        { blendMode: "BLEND_Translucent", inactive: ["Opacity Mask"] },
+        { blendMode: "BLEND_Additive", inactive: ["Opacity Mask"] },
+        { blendMode: "BLEND_AlphaComposite", inactive: ["Opacity Mask"] },
+    ];
+
+    for (const { blendMode, inactive } of cases) {
+        const viewer = Klee.init(makeElement("canvas"));
+        viewer.display(UI_ROOT(blendMode), {
+            graph: { material: { domain: "MD_UI", blendMode, unrealVersion: "5.7" } },
+        });
+        const root = viewer.app.scene.nodes[0];
+
+        assert.deepEqual(
+            root.pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name),
+            ["Final Color", "Opacity", "Opacity Mask", "Screen Position", "Front Material"],
+            `${blendMode}: every serialized root pin must stay rendered`
+        );
+        assert.deepEqual(
+            root.pins.filter(pin => pin.pinProperty.inactive).map(pin => pin.pinProperty.name),
+            inactive,
+            `${blendMode}: wrong pins grayed out`
+        );
+        viewer.destroy();
+    }
+});
