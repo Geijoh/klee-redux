@@ -76,11 +76,11 @@ export class HeadedNodeControl extends NodeControl implements DrawableControl {
 
         canvas.fillStyle(Constants.NODE_BACKGROUND_COLOR)
             .font(Constants.NODE_FONT)
-            .roundedRectangle(0, 0, this.size.x, this.size.y, 6)
+            .roundedRectangle(0, 0, this.size.x, this.size.y, Constants.NODE_CORNER_RADIUS)
             .fill();
         ctx.restore();
 
-        canvas.roundedRectangle(0, 0, this.size.x, this.size.y, 6);
+        canvas.roundedRectangle(0, 0, this.size.x, this.size.y, Constants.NODE_CORNER_RADIUS);
         this.drawStroke(canvas);
     }
 }

@@ -28,12 +28,12 @@ export class CommentNodeControl extends NodeControl implements DrawableControl {
 
         canvas.fillStyle(this.bodyBackgroundColor)
             .font(Constants.NODE_FONT)
-            .roundedRectangle(0, 0, this.width, this.height, 5)
+            .roundedRectangle(0, 0, this.width, this.height, Constants.COMMENT_CORNER_RADIUS)
             .fill()
 
         this.drawTitle(canvas);
 
-        canvas.roundedRectangle(0, 0, this.width, this.height, 5);
+        canvas.roundedRectangle(0, 0, this.width, this.height, Constants.COMMENT_CORNER_RADIUS);
 
         this.drawStroke(canvas);
     }
@@ -57,7 +57,7 @@ export class CommentNodeControl extends NodeControl implements DrawableControl {
         const headerHeight = 32;
 
         canvas.fillStyle(this.headerBackgroundColor)
-            .roundedRectangle(0, 0, this.width, headerHeight, { radiusTopLeft: 5, radiusTopRight: 5, radiusBottomLeft: 0, radiusBottomRight: 0 })
+            .roundedRectangle(0, 0, this.width, headerHeight, { radiusTopLeft: Constants.COMMENT_CORNER_RADIUS, radiusTopRight: Constants.COMMENT_CORNER_RADIUS, radiusBottomLeft: 0, radiusBottomRight: 0 })
             .fill()
             .font("600 18px sans-serif")
             .textAlign('left')
