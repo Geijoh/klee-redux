@@ -14,6 +14,7 @@ export class MaterialGraphNodeParser extends NodeParser {
         if (metadata.expressionClass || isMaterialRootNodeClass(data.node.class)) {
             data.node.title = metadata.title;
         }
+        if (metadata.headerColor) data.node.backgroundColor = metadata.headerColor;
         data.node.materialExpressionClass = metadata.expressionClass;
         data.node.materialFunction = metadata.materialFunction;
 
