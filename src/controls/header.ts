@@ -63,7 +63,7 @@ export class Header extends HorizontalPanel {
 
     protected onDraw(canvas: Canvas2D) {
         canvas.fillStyle(this.fillStyleHeader)
-            .roundedRectangle(1, 1, this.size.x - 2, this.size.y, { radiusTopLeft: 5, radiusTopRight: 5, radiusBottomLeft: 0, radiusBottomRight: 0 })
+            .roundedRectangle(1, 1, this.size.x - 2, this.size.y, { radiusTopLeft: Constants.NODE_HEADER_CORNER_RADIUS, radiusTopRight: Constants.NODE_HEADER_CORNER_RADIUS, radiusBottomLeft: 0, radiusBottomRight: 0 })
             .fill();
     }
 

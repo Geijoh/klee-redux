@@ -31,4 +31,12 @@ export class Constants {
     public static readonly DEFAULT_BOX_HEIGHT = 16;
     public static readonly DEFAULT_BOX_RADIUS = 2;
 
+    /**
+     * Node card rounding. The header is drawn 1px inside the card border, so it
+     * rounds one pixel tighter to stay concentric with the corner behind it.
+     */
+    public static readonly NODE_CORNER_RADIUS = 12;
+    public static readonly NODE_HEADER_CORNER_RADIUS = Constants.NODE_CORNER_RADIUS - 1;
+    public static readonly COMMENT_CORNER_RADIUS = 10;
+
 }
