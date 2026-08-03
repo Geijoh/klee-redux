@@ -110,7 +110,9 @@ export class GenericNodeParser extends NodeParser {
         const activeInputs = new Set(activeRootInputs.map(input => input.toLowerCase()));
         for (const property of data.node.customProperties) {
             if (!(property instanceof PinProperty)) continue;
-            property.hidden = property.hidden || !activeInputs.has((property.name || "").toLowerCase());
+            // Unreal grays inactive root inputs out; it never removes them, so
+            // the node keeps the shape the editor shows.
+            property.inactive = !activeInputs.has((property.name || "").toLowerCase());
         }
     }
 

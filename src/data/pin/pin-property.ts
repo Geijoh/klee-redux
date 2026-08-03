@@ -32,6 +32,8 @@ export class PinProperty extends CustomProperty {
     linkedTo: PinLink[];
     persistentGUID: string;
     hidden: boolean;
+    /** Rendered, but dimmed: unusable under the current Material settings. */
+    inactive: boolean;
     notConnectable: boolean;
 
     valueType?: string;

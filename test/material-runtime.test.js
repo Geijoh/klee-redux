@@ -133,8 +133,16 @@ test("Material graphs expose inspection, conservative root inputs, and W preview
 
     const root = viewer.app.scene.nodes.find(node => node.name === "MaterialGraphNode_Root_0");
     const expression = viewer.app.scene.nodes.find(node => node.name === "MaterialGraphNode_0");
-    assert.deepEqual(root.pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name), ["Final Color", "Opacity"]);
-    assert.equal(viewer.app.scene._controls.length, 3, "a link to a filtered root pin must not become a dangling wire");
+    // Unreal grays root inputs that are unusable under the current domain and
+    // blend mode; it never removes them, so every serialized pin stays rendered.
+    assert.deepEqual(
+        root.pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name),
+        ["Base Color", "Final Color", "Opacity", "Opacity Mask"]
+    );
+    assert.deepEqual(
+        root.pins.filter(pin => pin.pinProperty.inactive).map(pin => pin.pinProperty.name),
+        ["Base Color", "Opacity Mask"]
+    );
     assert.equal(root.previewed, true);
     assert.equal(viewer.getPreviewState().active, false);
 
@@ -147,10 +155,18 @@ test("Material graphs expose inspection, conservative root inputs, and W preview
     hiddenAllowedViewer.display(hiddenAllowedRoot, {
         graph: { material: { rootInputs: ["Final Color", "Opacity"] } },
     });
+    // Unreal's own bHidden still removes a pin; the root policy only dims, so
+    // every other serialized pin stays rendered whether active or not.
     assert.deepEqual(
         hiddenAllowedViewer.app.scene.nodes[0].pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name),
-        ["Opacity"],
+        ["Base Color", "Opacity", "Opacity Mask"],
         "root policy must preserve Unreal's serialized hidden state"
+    );
+    assert.deepEqual(
+        hiddenAllowedViewer.app.scene.nodes[0].pins
+            .filter(pin => pin.pinProperty.inactive).map(pin => pin.pinProperty.name),
+        ["Base Color", "Opacity Mask"],
+        "pins outside the authored root-input list are dimmed, not removed"
     );
     assert.equal(viewer.getPreviewState().nodeName, root.name);
 

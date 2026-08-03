@@ -5,10 +5,13 @@ import { DrawableControl } from "./interfaces/drawable";
 
 export class Background extends Control implements DrawableControl {
 
-    private static readonly BASE_COLOR = "#161a22";
-    private static readonly MINOR_GRID_COLOR = "#1e232d";
-    private static readonly MAJOR_GRID_COLOR = "#262c38";
-    private static readonly AXIS_COLOR = "#0d0f14";
+    // UE5 canvas: a mid-dark neutral field ruled by grid lines *darker* than
+    // the field, so the grid reads as grooves and nodes stay the brightest
+    // surfaces on screen.
+    private static readonly BASE_COLOR = "#262626";
+    private static readonly MINOR_GRID_COLOR = "#212121";   // ~13% black over the field
+    private static readonly MAJOR_GRID_COLOR = "#1b1b1b";   // ~30% black, every 8th line
+    private static readonly AXIS_COLOR = "#0a0a0a";         // near-black origin axes
     private static readonly SMALL_GRID = 16;
     private static readonly LARGE_GRID = 128;
 
