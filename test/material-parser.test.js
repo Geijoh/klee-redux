@@ -43,7 +43,7 @@ function loadTypeScriptModule(filePath) {
 const { readUnrealObjectBlock } = loadTypeScriptModule(
     path.join(projectRoot, "src/parser/unreal-object-block.ts")
 );
-const { resolveMaterialNodeMetadata } = loadTypeScriptModule(
+const { resolveMaterialNodeMetadata, resolveMaterialHeaderColor } = loadTypeScriptModule(
     path.join(projectRoot, "src/parser/material-node-metadata.ts")
 );
 const { inspectUnrealGraph } = loadTypeScriptModule(
@@ -73,6 +73,8 @@ assert.deepEqual(functionMetadata, {
         assetName: "GetUserInterfaceUV",
         objectPath: "/Engine/Functions/UserInterface/GetUserInterfaceUV.GetUserInterfaceUV",
     },
+    // FunctionCallNodeTitleColor: Material headers encode output type.
+    headerColor: "121,201,255",
 });
 
 const packageNameMetadata = resolveMaterialNodeMetadata([
@@ -259,3 +261,15 @@ assert.throws(
 );
 
 console.log("Material graph parser tests passed.");
+
+// UE5 routes Material header tints through UMaterialGraphNode::GetNodeTitleColor().
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionConstant"), "161,255,69");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionScalarParameter"), "161,255,69");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionConstant3Vector"), "255,202,35");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionVectorParameter"), "255,202,35");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionTextureSample"), "0,170,245");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionStaticSwitch"), "149,0,0");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionMaterialFunctionCall"), "121,201,255");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionFunctionOutput"), "255,211,170");
+assert.equal(resolveMaterialHeaderColor("MaterialExpressionMultiply"), "154,154,154");
+assert.equal(resolveMaterialHeaderColor(undefined), "154,154,154");

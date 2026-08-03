@@ -4,7 +4,44 @@ export interface MaterialNodeMetadata {
     title: string;
     expressionClass?: string;
     materialFunction?: MaterialFunctionReference;
+    headerColor?: string;
 }
+
+/**
+ * Material graphs have no execution model, so the header tint encodes the
+ * expression's *output type* rather than a node role. These are the
+ * UGraphEditorSettings defaults that UMaterialGraphNode::GetNodeTitleColor()
+ * routes to, converted from linear to sRGB.
+ */
+const MATERIAL_HEADER_COLORS = {
+    boolean: '149,0,0',       // BooleanPinTypeColor
+    scalar: '161,255,69',     // FloatPinTypeColor
+    vector: '255,202,35',     // VectorPinTypeColor
+    object: '0,170,245',      // ObjectPinTypeColor
+    functionCall: '121,201,255', // FunctionCallNodeTitleColor
+    result: '255,211,170',    // ResultNodeTitleColor
+    neutral: '154,154,154',   // Everything else stays neutral gray
+};
+
+const HEADER_COLOR_RULES: Array<{ test: RegExp; color: string }> = [
+    { test: /^MaterialExpression(?:StaticBool|StaticSwitch|StaticBoolParameter|StaticSwitchParameter)$/, color: MATERIAL_HEADER_COLORS.boolean },
+    { test: /^MaterialExpression(?:Constant|ScalarParameter)$/, color: MATERIAL_HEADER_COLORS.scalar },
+    { test: /^MaterialExpression(?:Constant[234]Vector|VectorParameter)$/, color: MATERIAL_HEADER_COLORS.vector },
+    { test: /^MaterialExpression(?:Texture|RuntimeVirtualTexture|SparseVolumeTexture)/, color: MATERIAL_HEADER_COLORS.object },
+    { test: /^MaterialExpressionMaterialFunctionCall$/, color: MATERIAL_HEADER_COLORS.functionCall },
+    { test: /^MaterialExpression(?:FunctionOutput|.*Output)$/, color: MATERIAL_HEADER_COLORS.result },
+];
+
+/** Returns the `r,g,b` header tint for a Material expression class. */
+export function resolveMaterialHeaderColor(expressionClassName: string | undefined): string {
+    if (!expressionClassName) return MATERIAL_HEADER_COLORS.neutral;
+    for (const rule of HEADER_COLOR_RULES) {
+        if (rule.test.test(expressionClassName)) return rule.color;
+    }
+    return MATERIAL_HEADER_COLORS.neutral;
+}
+
+export const MATERIAL_RESULT_HEADER_COLOR = MATERIAL_HEADER_COLORS.result;
 
 const MATERIAL_EXPRESSION_PREFIX = "MaterialExpression";
 
@@ -158,15 +195,17 @@ function getRootMaterialTitle(lines: string[]): string {
  */
 export function resolveMaterialNodeMetadata(lines: string[], nodeClass: string): MaterialNodeMetadata {
     if (/(?:^|\.)MaterialGraphNode_Root(?:_|$)/.test(nodeClass)) {
-        return { title: getRootMaterialTitle(lines) };
+        // The result node is an output, so it carries ResultNodeTitleColor.
+        return { title: getRootMaterialTitle(lines), headerColor: MATERIAL_RESULT_HEADER_COLOR };
     }
 
     const expressionClass = getExpressionClass(lines);
     if (!expressionClass) {
-        return { title: "Material Node" };
+        return { title: "Material Node", headerColor: resolveMaterialHeaderColor(undefined) };
     }
 
     const expressionClassName = getExpressionClassName(expressionClass);
+    const headerColor = resolveMaterialHeaderColor(expressionClassName);
     const materialFunction = expressionClassName === "MaterialExpressionMaterialFunctionCall"
         ? getMaterialFunction(lines)
         : undefined;
@@ -176,23 +215,25 @@ export function resolveMaterialNodeMetadata(lines: string[], nodeClass: string):
             title: materialFunction.assetName,
             expressionClass,
             materialFunction,
+            headerColor,
         };
     }
 
     const parameterName = parseSerializedString(findProperty(lines, ["ParameterName"]));
     if (parameterName) {
-        return { title: parameterName, expressionClass };
+        return { title: parameterName, expressionClass, headerColor };
     }
 
     const description = expressionClassName === "MaterialExpressionCustom"
         ? parseSerializedString(findProperty(lines, ["Description"]))
         : undefined;
     if (description) {
-        return { title: description, expressionClass };
+        return { title: description, expressionClass, headerColor };
     }
 
     return {
         title: EDITOR_TITLES[expressionClassName] || humanizeExpressionClass(expressionClassName),
         expressionClass,
+        headerColor,
     };
 }

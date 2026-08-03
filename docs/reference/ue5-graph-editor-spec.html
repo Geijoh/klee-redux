@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;600&amp;family=Roboto:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#0F1013;color:#E8E9EB;font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth;scroll-padding-top:28px}
+a{color:#4FC3FF;text-decoration:none}
+a:hover{color:#8AD8FF}
+::selection{background:rgba(233,163,57,0.35)}
+@keyframes ompulse{to{stroke-dashoffset:-48}}
+</style>
+</helmet>
+<div style="display:flex;align-items:flex-start;min-height:100vh">
+<aside style="position:sticky;top:0;flex:0 0 216px;width:216px;height:100vh;box-sizing:border-box;overflow-y:auto;padding:42px 6px 42px 28px;border-right:1px solid #1E2024">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;color:#6B6F76;margin-bottom:14px">CONTENTS</div>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ tocItems }}" as="t" hint-placeholder-count="12">
+      <a href="#{{ t.id }}" style="display:flex;gap:10px;padding:4px 0;font-size:12px;color:#9DA1A8;text-decoration:none;line-height:1.35" style-hover="color:#EDEEF0">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#5C6067;padding-top:1px">{{ t.num }}</span>
+        <span>{{ t.label }}</span>
+      </a>
+    </sc-for>
+  </nav>
+</aside>
+<main style="flex:1;min-width:0;max-width:952px;padding:52px 56px 100px;box-sizing:border-box">
+
+  <header data-screen-label="Cover" style="margin:0 0 74px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.22em;color:#E9A339;margin-bottom:16px">GRAPH EDITOR &middot; VISUAL SPECIFICATION</div>
+    <h1 style="margin:0 0 16px;font-size:42px;line-height:1.08;font-weight:700;letter-spacing:-0.015em;color:#F4F5F7;max-width:16ch;text-wrap:pretty">The visual language of UE5 graph editors</h1>
+    <p style="margin:0 0 24px;max-width:64ch;font-size:15.5px;line-height:1.6;color:#B9BDC4;text-wrap:pretty">A breakdown of the Blueprint and Material node systems &mdash; node anatomy, role and type color semantics, wires, feedback states, and canvas conventions. Values are engine defaults.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9DA1A8;border:1px solid #2B2D31;border-radius:99px;padding:4px 11px">UE 5.x defaults</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9DA1A8;border:1px solid #2B2D31;border-radius:99px;padding:4px 11px">UGraphEditorSettings</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9DA1A8;border:1px solid #2B2D31;border-radius:99px;padding:4px 11px">linear &rarr; sRGB</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9DA1A8;border:1px solid #2B2D31;border-radius:99px;padding:4px 11px">unofficial reference</span>
+    </div>
+  </header>
+
+  <section id="s01" data-screen-label="01 Scope" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">01</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Scope &amp; method</h2></div>
+    <p style="margin:0 0 14px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">This document covers the two most-used node graphs in Unreal Engine: the Blueprint event graph and the Material expression graph. Both are built on the same Slate graph framework &mdash; one canvas, one typeface, one settings object &mdash; then diverge sharply in how they spend color.</p>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">Color tokens live as linear-space <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">FLinearColor</span> values in <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">UGraphEditorSettings</span>; hex values here are those defaults converted to sRGB. Values that come from Slate style brushes rather than settings tokens are sampled from the rendered UI and marked <span style="color:#E9A339">&asymp;</span>.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;border:1px solid #2B2D31;border-radius:8px;padding:8px 13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7BD88F">EXACT</span><span style="font-size:12.5px;color:#9DA1A8">engine-default setting, converted linear&rarr;sRGB</span></div>
+      <div style="display:flex;align-items:center;gap:8px;border:1px solid #2B2D31;border-radius:8px;padding:8px 13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E9A339">&asymp;</span><span style="font-size:12.5px;color:#9DA1A8">sampled from rendered UI; may drift between versions</span></div>
+    </div>
+  </section>
+
+  <section id="s02" data-screen-label="02 Canvas" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">02</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Canvas &amp; grid</h2></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">Both editors share one canvas: a mid-dark neutral field ruled by a two-level grid. Grid lines are <em style="font-style:normal;color:#E0E2E5">darker</em> than the field, not lighter &mdash; the grid reads as grooves, keeping nodes the brightest surfaces on screen. The grid fades as you zoom away.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;max-width:860px;margin-bottom:10px">
+      <div style="border:1px solid #2B2D31;border-radius:8px;overflow:hidden"><div style="height:44px;background:#262626"></div><div style="padding:9px 12px"><div style="font-size:12.5px;color:#E0E2E5">Field</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">&asymp;#262626</div></div></div>
+      <div style="border:1px solid #2B2D31;border-radius:8px;overflow:hidden"><div style="height:44px;background:#262626;background-image:linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:16px 16px"></div><div style="padding:9px 12px"><div style="font-size:12.5px;color:#E0E2E5">Minor rule &middot; 16 px</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">&asymp;13% black</div></div></div>
+      <div style="border:1px solid #2B2D31;border-radius:8px;overflow:hidden"><div style="height:44px;background:#262626;background-image:linear-gradient(to right,rgba(0,0,0,0.32) 1px,transparent 1px);background-size:32px 32px"></div><div style="padding:9px 12px"><div style="font-size:12.5px;color:#E0E2E5">Major rule &middot; 128 px</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">every 8th line &middot; &asymp;30% black</div></div></div>
+      <div style="border:1px solid #2B2D31;border-radius:8px;overflow:hidden"><div style="height:44px;background:#262626;background-image:linear-gradient(to right,rgba(0,0,0,0.8) 2px,transparent 2px);background-size:44px 44px"></div><div style="padding:9px 12px"><div style="font-size:12.5px;color:#E0E2E5">Origin axes</div><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">near-black &asymp;</div></div></div>
+    </div>
+    <p style="margin:0;max-width:72ch;font-size:13px;line-height:1.6;color:#8A8E95">Nodes snap to the 16 px minor grid when dragged. Panning is unbounded; there is no page or artboard concept. Watermarks (graph type, zoom level) render as huge low-contrast type pinned to the viewport corners.</p>
+  </section>
+
+  <section id="s03" data-screen-label="03 Typography" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">03</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Typography &amp; density</h2></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">The editor sets one family &mdash; Roboto, Slate&rsquo;s default UI face. Hierarchy inside a node is carried by weight, size, and opacity, never by hue. Every title carries a 1&nbsp;px black drop shadow so white text survives any header tint.</p>
+    <div style="border:1px solid #2B2D31;border-radius:10px;background:#141518;padding:20px 24px;max-width:720px;display:flex;flex-direction:column;gap:13px;margin-bottom:16px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px"><span style="font-family:Roboto,Arial,sans-serif;font-weight:700;font-size:13px;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Node title &mdash; Add Movement Input</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">Roboto Bold &middot; &asymp;13 px @100% &middot; 1 px shadow</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px"><span style="font-family:Roboto,Arial,sans-serif;font-size:10.5px;color:rgba(255,255,255,0.6)">Subtitle &mdash; Target is Pawn</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">Roboto &middot; &asymp;10.5 px &middot; 60% white</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px"><span style="font-family:Roboto,Arial,sans-serif;font-size:12px;color:#E4E4E4">Pin label &mdash; World Direction</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">Roboto &middot; &asymp;12 px</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px"><span style="font-family:Roboto,Arial,sans-serif;font-size:11px;color:#E8E8E8;background:#1A1A1C;border:1px solid #9A9A9A;border-radius:2px;padding:1px 7px;width:max-content">0.0</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">default-value chip &middot; 1 px light border</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px"><span style="font-family:Roboto,Arial,sans-serif;font-size:18px;font-weight:500;color:#EDEDED">Comment header</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">default 18 pt &middot; user-scalable</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px"><span style="font-family:Roboto,Arial,sans-serif;font-size:30px;font-weight:700;color:rgba(255,255,255,0.25)">+</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7E838B">compact-node glyph &middot; &asymp;25% white</span></div>
+    </div>
+    <p style="margin:0;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">Density is managed by zoom level-of-detail: zooming out first drops default-value widgets, then pin labels, then pins &mdash; at the lowest LOD a node is just a tinted title bar. Long labels wrap their value widgets onto the next line; rarely-used pins collapse behind a chevron expander at the node&rsquo;s foot.</p>
+  </section>
+
+  <section id="s04" data-screen-label="04 Node anatomy" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">04</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Blueprint node anatomy</h2></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">A standard node is a near-black rounded card (&asymp;8&nbsp;px radius, &asymp;1&nbsp;px gray border, soft drop shadow) under a tinted title gradient that runs bright-left to dark-right. Inputs stack on the left, outputs on the right; execution pins always take the first row. Unconnected inputs surface default-value widgets inline.</p>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;padding:24px;min-width:820px;box-sizing:border-box">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;width:772px;height:318px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#A7ABB2">
+        <div style="position:absolute;left:268px;top:56px;width:250px;box-sizing:border-box;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif">
+          <div style="display:flex;align-items:flex-start;gap:7px;padding:6px 10px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)">
+            <span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7);line-height:1.2">&fnof;</span>
+            <span><span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">Add Movement Input</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6);text-shadow:0 1px 1px rgba(0,0,0,0.6)">Target is Pawn</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#00AAF5"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg><span>Target</span><span style="font-size:11px;color:#E8E8E8;background:#1A1A1C;border:1px solid #9A9A9A;border-radius:2px;padding:0 6px">self</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#FFCA23" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#FFCA23"></path></svg><span>World Direction</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg><span>Scale Value</span><span style="font-size:11px;color:#E8E8E8;background:#1A1A1C;border:1px solid #9A9A9A;border-radius:2px;padding:0 6px">1.0</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#950000" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#950000"></path></svg><span>Force</span><span style="width:12px;height:12px;background:#141414;border:1px solid #8A8A8A;border-radius:2px"></span></div>
+          </div>
+        </div>
+        <div style="position:absolute;left:6px;top:58px;width:238px;text-align:right">role tint &middot; &fnof; call #79C9FF</div><div style="position:absolute;left:248px;top:66px;width:16px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:6px;top:84px;width:238px;text-align:right">subtitle &middot; target-class context</div><div style="position:absolute;left:248px;top:92px;width:16px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:6px;top:114px;width:238px;text-align:right">exec chevrons &middot; filled = linked</div><div style="position:absolute;left:248px;top:122px;width:16px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:6px;top:168px;width:238px;text-align:right">typed data pins &middot; Vector #FFCA23</div><div style="position:absolute;left:248px;top:176px;width:16px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:544px;top:58px;width:220px">Roboto Bold + 1 px shadow</div><div style="position:absolute;left:522px;top:66px;width:18px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:544px;top:134px;width:220px">&ldquo;self&rdquo; context chip</div><div style="position:absolute;left:522px;top:142px;width:18px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:544px;top:212px;width:220px">bool checkbox widget</div><div style="position:absolute;left:522px;top:220px;width:18px;height:1px;background:#565A61"></div>
+        <div style="position:absolute;left:268px;top:288px;width:400px">&asymp;1 px gray border &middot; 8 px radius &middot; soft drop shadow</div><div style="position:absolute;left:390px;top:252px;width:1px;height:32px;background:#565A61"></div>
+      </div>
+    </div></div>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 01 &middot; IMPURE FUNCTION CALL &mdash; ANNOTATED</div>
+  </section>
+
+  <section id="s05" data-screen-label="05 Node roles" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">05</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Node roles &amp; header tints</h2></div>
+    <div style="margin:0 0 18px;padding:14px 18px;border:1px solid #3A3D42;background:#17181B;border-radius:8px;max-width:640px"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.14em;color:#E9A339;margin-bottom:6px">RULE</div><div style="font-size:15.5px;color:#E8E9EB;line-height:1.5">In Blueprints, the header tint encodes the node&rsquo;s <strong>role</strong> &mdash; what it does in the execution model &mdash; never its data.</div></div>
+    <div style="border:1px solid #2B2D31;border-radius:10px;overflow:hidden;max-width:880px;margin-bottom:18px">
+      <div style="display:grid;grid-template-columns:46px 1.15fr 150px 1.55fr;gap:0 14px;background:#1B1C1F;padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#8A8E95"><span></span><span>ROLE</span><span>TOKEN</span><span>APPLIES TO</span></div>
+      <sc-for list="{{ titleRows }}" as="r" hint-placeholder-count="9">
+        <div style="display:grid;grid-template-columns:46px 1.15fr 150px 1.55fr;gap:0 14px;align-items:center;padding:8px 14px;border-top:1px solid #232529">
+          <span style="width:28px;height:16px;border-radius:4px;background:{{ r.hex }};box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14)"></span>
+          <span style="font-size:13px;color:#E4E6E9">{{ r.name }}</span>
+          <span><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#C9CDD3">{{ r.hex }}</span><sc-if value="{{ showLinear }}" hint-placeholder-val="{{ true }}"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#787D84">{{ r.lin }}</span></sc-if></span>
+          <span style="font-size:12px;line-height:1.45;color:#9DA1A8">{{ r.use }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0 0 14px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">The authored token is not what you see: headers render the tint multiplied over a dark left-to-right gradient brush, so the on-screen bar lands far darker &mdash; the &fnof;-call token <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">#79C9FF</span> reads as a steel blue near <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">&asymp;#3D617B</span> at its bright end.</p>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:8px"><span style="width:30px;height:20px;border-radius:4px;background:#79C9FF"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8A8E95">authored token</span></span>
+      <span style="color:#565A61">&rarr;</span>
+      <span style="display:flex;align-items:center;gap:8px"><span style="width:150px;height:20px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c),color-mix(in srgb,#79C9FF 13%,#0f1012))"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8A8E95">rendered header (&times; gradient brush)</span></span>
+    </div>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;padding:24px;min-width:820px;box-sizing:border-box;margin-bottom:14px">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#FF0000 46%,#0a0a0c) 0%,color-mix(in srgb,#FF0000 30%,#0c0d0f) 55%,color-mix(in srgb,#FF0000 13%,#0f1012) 100%)">
+            <svg width="12" height="12" viewBox="0 0 12 12" style="display:block"><path d="M6 1 11 6 6 11 1 6Z" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"></path></svg>
+            <span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Event BeginPlay</span>
+            <span style="width:9px;height:9px;border-radius:2px;background:#E23B3B;border:1px solid rgba(0,0,0,0.6);margin-left:14px"></span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;padding:9px 10px 11px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg></div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#FF0000 46%,#0a0a0c) 0%,color-mix(in srgb,#FF0000 30%,#0c0d0f) 55%,color-mix(in srgb,#FF0000 13%,#0f1012) 100%)">
+            <svg width="12" height="12" viewBox="0 0 12 12" style="display:block;margin-top:2px"><path d="M6 1 11 6 6 11 1 6Z" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"></path></svg>
+            <span><span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">OnTakeDamage</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Custom Event</span></span>
+            <span style="width:9px;height:9px;border-radius:2px;background:#E23B3B;border:1px solid rgba(0,0,0,0.6);margin-left:14px;margin-top:3px"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>Damage</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>Instigated By</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#00AAF5" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg></div>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#FFFFFF 46%,#0a0a0c) 0%,color-mix(in srgb,#FFFFFF 30%,#0c0d0f) 55%,color-mix(in srgb,#FFFFFF 13%,#0f1012) 100%)">
+            <span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Branch</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#950000"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#950000"></path></svg><span>Condition</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>True</span><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>False</span><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#0D8080 46%,#0a0a0c) 0%,color-mix(in srgb,#0D8080 30%,#0c0d0f) 55%,color-mix(in srgb,#0D8080 13%,#0f1012) 100%)">
+            <span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Cast To PlayerCharacter</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#00AAF5"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg><span>Object</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>Cast Failed</span><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>As Player Character</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#00AAF5" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div style="margin:0 0 14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 02 &middot; EVENTS (DIAMOND ICON + RED DELEGATE SQUARE), FLOW CONTROL, CAST (&asymp;)</div>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;padding:24px;min-width:820px;box-sizing:border-box">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#AAEDA0 46%,#0a0a0c) 0%,color-mix(in srgb,#AAEDA0 30%,#0c0d0f) 55%,color-mix(in srgb,#AAEDA0 13%,#0f1012) 100%)">
+            <span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7);line-height:1.2">&fnof;</span>
+            <span><span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">Get Forward Vector</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Target is Actor</span></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A0B4FF" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A0B4FF"></path></svg><span>In Rot</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>Return Value</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#FFCA23"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#FFCA23"></path></svg></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px;border-radius:999px;border:1px solid rgba(150,150,150,0.5);background:linear-gradient(180deg,color-mix(in srgb,#00AAF5 26%,#131418),color-mix(in srgb,#00AAF5 8%,#0e0e10) 70%);box-shadow:0 6px 14px rgba(0,0,0,0.45);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <span style="font-size:12px;font-weight:500;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.6)">Box</span>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#00AAF5"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg>
+          </div>
+          <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <div style="display:flex;justify-content:space-between;gap:22px;align-items:center;padding:8px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:7px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#A1FF45"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg><span>Speed</span></div>
+              </div>
+              <span style="font-family:Roboto,Arial,sans-serif;font-size:15px;font-weight:700;color:#EDEDED">SET</span>
+              <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+                <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position:relative;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:150px;height:76px">
+          <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);font-size:32px;font-weight:700;color:rgba(255,255,255,0.22)">+</span>
+          <div style="position:absolute;left:10px;top:14px;display:flex;flex-direction:column;gap:10px">
+            <svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg>
+          </div>
+          <div style="position:absolute;right:10px;top:26px"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg></div>
+        </div>
+        <div style="position:relative;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="position:absolute;top:-11px;right:-11px;width:22px;height:22px;border-radius:50%;background:#E8E8E8;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.6)"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><circle cx="6.5" cy="6.5" r="5" fill="none" stroke="#1c1c1c" stroke-width="1.4"></circle><path d="M6.5 3.6V6.5l2 1.3" stroke="#1c1c1c" stroke-width="1.3" fill="none"></path></svg></div>
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 26px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)">
+            <span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span>
+            <span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Delay</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg><span>Duration</span><span style="font-size:11px;color:#E8E8E8;background:#1A1A1C;border:1px solid #9A9A9A;border-radius:2px;padding:0 6px">0.2</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0;align-self:flex-start"><span>Completed</span><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 30px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)">
+            <span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span>
+            <span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Print String</span>
+          </div>
+          <div style="padding:9px 10px 5px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;justify-content:space-between;gap:26px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#FF00D4"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#FF00D4"></path></svg><span>In String</span></div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#950000" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#950000"></path></svg><span>Print to Screen</span><span style="width:12px;height:12px;background:#141414;border:1px solid #8A8A8A;border-radius:2px;display:flex;align-items:center;justify-content:center"><svg width="9" height="8" viewBox="0 0 9 8"><path d="M1 4.2 3.4 6.6 8 1.4" fill="none" stroke="#E8E8E8" stroke-width="1.6"></path></svg></span></div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#950000" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#950000"></path></svg><span>Print to Log</span><span style="width:12px;height:12px;background:#141414;border:1px solid #8A8A8A;border-radius:2px;display:flex;align-items:center;justify-content:center"><svg width="9" height="8" viewBox="0 0 9 8"><path d="M1 4.2 3.4 6.6 8 1.4" fill="none" stroke="#E8E8E8" stroke-width="1.6"></path></svg></span></div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#0059CB" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#0059CB"></path></svg><span>Text Color</span><span style="width:16px;height:13px;border-radius:2px;background:#29C7F0;border:1px solid rgba(255,255,255,0.35)"></span></div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg><span>Duration</span><span style="font-size:11px;color:#E8E8E8;background:#1A1A1C;border:1px solid #9A9A9A;border-radius:2px;padding:0 6px">2.0</span></div>
+              </div>
+              <svg width="13" height="13" viewBox="0 0 13 13" style="display:block;align-self:flex-start"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg>
+            </div>
+            <div style="display:flex;justify-content:center;padding-top:4px"><svg width="11" height="6" viewBox="0 0 11 6" style="display:block"><path d="M5.5 0 11 6H0z" fill="#B9BDC4"></path></svg></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 03 &middot; PURE &fnof;, GET PILL, SET, COMPACT MATH, LATENT BADGE, WIDGET VARIETY &amp; EXPANDER</div>
+    <p style="margin:14px 0 0;max-width:72ch;font-size:13px;line-height:1.6;color:#8A8E95">Special forms drop the standard chrome: variable getters are type-tinted capsules with a single output; compact math nodes trade their title bar for a large faded glyph; latent (time-consuming) calls wear a clock badge overlapping the top-right corner; events surface their bindable delegate as a red square in the title bar. Checked booleans render a white tick; color-type pins expose a swatch chip; nodes with advanced pins end in a centered expander triangle.</p>
+  </section>
+
+  <section id="s06" data-screen-label="06 Pin types" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">06</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">The pin type system</h2></div>
+    <div style="margin:0 0 18px;padding:14px 18px;border:1px solid #3A3D42;background:#17181B;border-radius:8px;max-width:640px"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.14em;color:#E9A339;margin-bottom:6px">RULE</div><div style="font-size:15.5px;color:#E8E9EB;line-height:1.5">Pin <strong>color</strong> encodes data type. Pin <strong>shape</strong> encodes the container. Pin <strong>fill</strong> encodes connection state.</div></div>
+    <div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:20px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center"><svg width="15" height="15" viewBox="0 0 13 13"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">EXEC</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center"><svg width="18" height="13" viewBox="0 0 16 12"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#A1FF45" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">SINGLE</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center"><svg width="18" height="13" viewBox="0 0 16 12"><circle cx="5" cy="6" r="3.6" fill="#A1FF45"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#A1FF45"></path></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">CONNECTED</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center"><svg width="14" height="14" viewBox="0 0 13 13"><g fill="#1FE3AF"><rect x="1" y="1" width="3" height="3"></rect><rect x="5" y="1" width="3" height="3"></rect><rect x="9" y="1" width="3" height="3"></rect><rect x="1" y="5" width="3" height="3"></rect><rect x="5" y="5" width="3" height="3"></rect><rect x="9" y="5" width="3" height="3"></rect><rect x="1" y="9" width="3" height="3"></rect><rect x="5" y="9" width="3" height="3"></rect><rect x="9" y="9" width="3" height="3"></rect></g></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">ARRAY</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1FE3AF">{&hairsp;}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">SET &asymp;</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center;gap:3px"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.2" fill="#CD82FF"></circle></svg><svg width="11" height="11" viewBox="0 0 11 11"><rect x="1" y="1" width="9" height="9" fill="#A1FF45"></rect></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">MAP K/V &asymp;</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center"><svg width="13" height="13" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="#FF3838" stroke-width="1.6"></rect></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">DELEGATE</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="height:22px;display:flex;align-items:center"><svg width="13" height="13" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.2" fill="none" stroke="#817A7A" stroke-width="1.7"></circle></svg></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A8E95">WILDCARD</span></div>
+    </div>
+    <div style="border:1px solid #2B2D31;border-radius:10px;overflow:hidden;max-width:880px;margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:46px 1.05fr 150px 1.6fr;gap:0 14px;background:#1B1C1F;padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#8A8E95"><span></span><span>TYPE</span><span>TOKEN</span><span>NOTES</span></div>
+      <sc-for list="{{ pinRows }}" as="r" hint-placeholder-count="22">
+        <div style="display:grid;grid-template-columns:46px 1.05fr 150px 1.6fr;gap:0 14px;align-items:center;padding:6.5px 14px;border-top:1px solid #232529">
+          <span style="width:28px;height:16px;border-radius:4px;background:{{ r.hex }};box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14)"></span>
+          <span style="font-size:13px;color:#E4E6E9">{{ r.name }}</span>
+          <span><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#C9CDD3">{{ r.hex }}</span><sc-if value="{{ showLinear }}" hint-placeholder-val="{{ true }}"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#787D84">{{ r.lin }}</span></sc-if></span>
+          <span style="font-size:12px;line-height:1.45;color:#9DA1A8">{{ r.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;max-width:72ch;font-size:13px;line-height:1.6;color:#8A8E95">Containers keep their element&rsquo;s tint &mdash; an array of vectors is a gold nine-square grid. Map pins show two colors at once: key shape + value shape. In UE5, Blueprint floats are double-precision but keep the lime float tint; the darker double green appears on natively-typed C++ pins.</p>
+  </section>
+
+  <section id="s07" data-screen-label="07 Wires" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">07</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Wires &amp; routing</h2></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">Wires are cubic B&eacute;ziers with horizontal tangents, tinted by their output pin. Execution wires are white and thicker &mdash; <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">2.5&nbsp;px</span> vs <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">1.5&nbsp;px</span> for data (both defaults). Hovering a wire brightens and thickens it; double-clicking inserts a reroute knot; dragging off a pin shows a ghost wire with a &ldquo;Place a new node&rdquo; prompt. During play-in-editor debugging, recently executed exec wires tint hot tan-orange and run traveling bubbles along the path, then decay.</p>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;min-width:868px;box-sizing:border-box">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;width:820px;height:240px;margin:12px 24px">
+        <svg width="820" height="240" viewBox="0 0 820 240" style="position:absolute;left:0;top:0">
+          <path d="M178 86 C280 86 380 80 478 80" fill="none" stroke="#FFFFFF" stroke-width="2.5"></path>
+          <sc-if value="{{ animateWires }}" hint-placeholder-val="{{ true }}"><path d="M178 86 C280 86 380 80 478 80" fill="none" stroke="#ECAF7E" stroke-width="2.5" stroke-dasharray="7 17" style="animation:ompulse 1.1s linear infinite"></path></sc-if>
+          <path d="M196 165 C270 165 316 132 352 132" fill="none" stroke="#00AAF5" stroke-width="1.5"></path>
+          <path d="M352 132 C400 132 440 106 478 106" fill="none" stroke="#00AAF5" stroke-width="1.5"></path>
+          <circle cx="352" cy="132" r="5" fill="#00AAF5" stroke="#0d0d0d" stroke-width="1.5"></circle>
+        </svg>
+        <div style="position:absolute;left:24px;top:34px;width:170px;box-sizing:border-box;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#FF0000 46%,#0a0a0c) 0%,color-mix(in srgb,#FF0000 30%,#0c0d0f) 55%,color-mix(in srgb,#FF0000 13%,#0f1012) 100%)">
+            <svg width="12" height="12" viewBox="0 0 12 12" style="display:block"><path d="M6 1 11 6 6 11 1 6Z" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"></path></svg>
+            <span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Event BeginPlay</span>
+            <span style="width:9px;height:9px;border-radius:2px;background:#E23B3B;border:1px solid rgba(0,0,0,0.6);margin-left:12px"></span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;padding:8px 10px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg></div>
+        </div>
+        <div style="position:absolute;left:470px;top:16px;width:214px;box-sizing:border-box;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif">
+          <div style="display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)">
+            <span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7);line-height:1.2">&fnof;</span>
+            <span><span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">Destroy Actor</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Target is Actor</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;justify-content:space-between"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#00AAF5"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg><span>Target</span></div>
+          </div>
+        </div>
+        <div style="position:absolute;left:96px;top:150px;width:110px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 14px 5px 16px;border-radius:999px;border:1px solid rgba(150,150,150,0.5);background:linear-gradient(180deg,color-mix(in srgb,#00AAF5 26%,#131418),color-mix(in srgb,#00AAF5 8%,#0e0e10) 70%);box-shadow:0 6px 14px rgba(0,0,0,0.45);font-family:Roboto,Arial,sans-serif">
+          <span style="font-size:12px;font-weight:500;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.6)">Box</span>
+          <svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#00AAF5"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#00AAF5"></path></svg>
+        </div>
+        <div style="position:absolute;left:300px;top:52px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">exec &middot; 2.5 px</div>
+        <div style="position:absolute;left:210px;top:196px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">Object &middot; 1.5 px &middot; inherits pin tint</div>
+        <div style="position:absolute;left:326px;top:104px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">reroute knot</div>
+      </div>
+    </div></div>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 04 &middot; WIRE WEIGHT &amp; TINT; DEBUG PULSE ON THE EXEC WIRE</div>
+  </section>
+
+  <section id="s08" data-screen-label="08 States" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">08</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Selection &amp; feedback states</h2></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">State never repaints the node &mdash; it wraps it. Selection adds an amber outline and glow; compile problems attach full-width banners to the node&rsquo;s foot; breakpoints badge the corner; disabled or unreached nodes dim in place. When execution halts at a breakpoint, a large red arrow drops onto the node from above; watched values pin small &ldquo;Watching &hellip;&rdquo; bubbles to their node.</p>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;padding:26px;min-width:820px;box-sizing:border-box">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 0 0 2px #F0A32B,0 0 10px rgba(240,163,43,0.35),0 10px 22px rgba(0,0,0,0.5);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 12px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)"><span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span><span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Apply Damage</span></div>
+            <div style="display:flex;justify-content:space-between;gap:30px;padding:8px 10px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">SELECTED &middot; &asymp;#F0A32B OUTLINE</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.5);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 12px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)"><span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span><span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Apply Damage</span></div>
+            <div style="display:flex;justify-content:space-between;gap:30px;padding:8px 10px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%)"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+            <div style="background:#D40000;color:#FFFFFF;font-weight:700;font-size:11px;letter-spacing:0.05em;padding:3px 10px;border-radius:0 0 7px 7px;border-top:1px solid rgba(0,0,0,0.6)">ERROR!</div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">COMPILE ERROR BANNER</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.5);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 12px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)"><span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span><span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Apply Damage</span></div>
+            <div style="display:flex;justify-content:space-between;gap:30px;padding:8px 10px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%)"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+            <div style="background:#C9A400;color:#141414;font-weight:700;font-size:11px;letter-spacing:0.05em;padding:3px 10px;border-radius:0 0 7px 7px;border-top:1px solid rgba(0,0,0,0.6)">WARNING!</div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">WARNING BANNER</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="position:relative;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.5);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <svg width="20" height="20" viewBox="0 0 20 20" style="position:absolute;top:-9px;left:-9px;display:block"><path d="M6.2 1.5h7.6l4.7 4.7v7.6l-4.7 4.7H6.2l-4.7-4.7V6.2z" fill="#D42B2B" stroke="#5A0000" stroke-width="1"></path></svg>
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 12px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)"><span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span><span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Apply Damage</span></div>
+            <div style="display:flex;justify-content:space-between;gap:30px;padding:8px 10px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">BREAKPOINT BADGE</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="opacity:0.4;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.5);font-family:Roboto,Arial,sans-serif;width:max-content">
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 12px 6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)"><span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:14px;color:rgba(255,255,255,0.95);text-shadow:0 1px 1px rgba(0,0,0,0.7)">&fnof;</span><span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Apply Damage</span></div>
+            <div style="display:flex;justify-content:space-between;gap:30px;padding:8px 10px 10px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px"><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8">DISABLED / UNREACHED &middot; DIMMED</span>
+        </div>
+      </div>
+    </div></div>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 05 &middot; STATE WRAPS THE NODE; IT NEVER RECOLORS THE HEADER</div>
+  </section>
+
+  <section id="s09" data-screen-label="09 Comments" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">09</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Comments &amp; organization</h2></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">Comment boxes are the only user-tintable surface: an opaque title bar over a translucent body that groups and moves nodes together. Default tint is white (<span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D5D8DC">DefaultCommentNodeTitleColor 1,1,1</span>); teams recolor them freely. At low zoom the title re-renders as a fixed-size bubble so it stays legible. Individual nodes can also carry a small white bubble note above their header.</p>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;padding:24px;min-width:820px;box-sizing:border-box">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;width:772px;height:230px">
+        <div style="position:absolute;left:20px;top:8px;width:470px;height:200px;border:1px solid rgba(255,255,255,0.4);border-radius:4px;background:rgba(255,255,255,0.12)">
+          <div style="background:rgba(255,255,255,0.86);color:#141517;font-family:Roboto,Arial,sans-serif;font-size:15px;font-weight:500;padding:5px 12px;border-radius:3px 3px 0 0">Movement &mdash; root motion only</div>
+        </div>
+        <div style="position:absolute;left:56px;top:78px;background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#FFFFFF 46%,#0a0a0c) 0%,color-mix(in srgb,#FFFFFF 30%,#0c0d0f) 55%,color-mix(in srgb,#FFFFFF 13%,#0f1012) 100%)"><span style="font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85)">Branch</span></div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#950000"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#950000"></path></svg><span>Condition</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>True</span><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="#EDEDED"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>False</span><svg width="13" height="13" viewBox="0 0 13 13" style="display:block"><path d="M2.2 1.8h4.9l4.1 4.7-4.1 4.7H2.2z" fill="none" stroke="#EDEDED" stroke-width="1.5"></path></svg></div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:530px;top:96px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#9BA0A8;width:210px;line-height:1.7">opaque title bar &middot; 18 pt default<br>translucent tinted body<br>moves grouped nodes together</div>
+      </div>
+    </div></div>
+    <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 06 &middot; COMMENT BOX &mdash; DEFAULT WHITE TINT</div>
+  </section>
+
+  <section id="s10" data-screen-label="10 Materials" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">10</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">The Material graph system</h2></div>
+    <div style="margin:0 0 18px;padding:14px 18px;border:1px solid #3A3D42;background:#17181B;border-radius:8px;max-width:640px"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.14em;color:#E9A339;margin-bottom:6px">RULE</div><div style="font-size:15.5px;color:#E8E9EB;line-height:1.5">Materials invert the system: with no execution model there is no role axis, so the header tint encodes the expression&rsquo;s <strong>output type</strong> &mdash; and pins go uniform.</div></div>
+    <p style="margin:0 0 18px;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">The Material editor reuses the Blueprint pin palette, but moves it up to the title bar: a scalar constant and a Scalar Parameter both wear float lime; vector constants and parameters wear gold; texture and object references wear the object blue. Everything else stays neutral gray. Data pins themselves are a uniform pale circle &mdash; type mismatches surface at compile, not at the pin.</p>
+    <div style="border:1px solid #2B2D31;border-radius:10px;overflow:hidden;max-width:880px;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:46px 1.35fr 130px 1.35fr;gap:0 14px;background:#1B1C1F;padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#8A8E95"><span></span><span>EXPRESSION</span><span>HEADER</span><span>SOURCE TOKEN</span></div>
+      <sc-for list="{{ matRows }}" as="r" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:46px 1.35fr 130px 1.35fr;gap:0 14px;align-items:center;padding:7px 14px;border-top:1px solid #232529">
+          <span style="width:28px;height:16px;border-radius:4px;background:{{ r.hex }};box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14)"></span>
+          <span style="font-size:13px;color:#E4E6E9">{{ r.name }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#C9CDD3">{{ r.hex }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9DA1A8">{{ r.token }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="overflow-x:auto"><div style="position:relative;overflow:hidden;border:1px solid #2B2D31;border-radius:10px;background:#262626;padding:24px;min-width:820px;box-sizing:border-box;margin-bottom:14px">
+      <sc-if value="{{ figureGrid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.3) 1px,transparent 1px),linear-gradient(to right,rgba(0,0,0,0.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,0.13) 1px,transparent 1px);background-size:128px 128px,128px 128px,16px 16px,16px 16px"></div></sc-if>
+      <div style="position:relative;z-index:1;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:250px;box-sizing:border-box">
+          <div style="display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#00AAF5 46%,#0a0a0c) 0%,color-mix(in srgb,#00AAF5 30%,#0c0d0f) 55%,color-mix(in srgb,#00AAF5 13%,#0f1012) 100%)">
+            <span><span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">Texture Sample</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">T_Rock_D</span></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:9px;padding-top:2px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>UVs</span></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Tex</span></div>
+              <div style="width:74px;height:58px;border-radius:3px;border:1px solid rgba(255,255,255,0.2);background:repeating-conic-gradient(#3F4144 0% 25%,#2A2C2F 0% 50%) 0 0/14px 14px"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>RGB</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#DCDCDC"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>R</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#FF5050" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#FF5050"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>G</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#4FD64F" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#4FD64F"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>B</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#5588FF" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#5588FF"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><span>A</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg></div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#A1FF45 46%,#0a0a0c) 0%,color-mix(in srgb,#A1FF45 30%,#0c0d0f) 55%,color-mix(in srgb,#A1FF45 13%,#0f1012) 100%)">
+            <span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">Roughness</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Scalar Parameter &middot; 0.8</span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;padding:9px 10px 11px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg></div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#FFCA23 46%,#0a0a0c) 0%,color-mix(in srgb,#FFCA23 30%,#0c0d0f) 55%,color-mix(in srgb,#FFCA23 13%,#0f1012) 100%)">
+            <span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">TintColor</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Vector Parameter</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:9px 10px 11px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <span style="width:44px;height:30px;border-radius:3px;border:1px solid rgba(255,255,255,0.2);background:linear-gradient(135deg,#E8763A,#B33D14)"></span>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#79C9FF 46%,#0a0a0c) 0%,color-mix(in srgb,#79C9FF 30%,#0c0d0f) 55%,color-mix(in srgb,#79C9FF 13%,#0f1012) 100%)">
+            <span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">MF_Fresnel</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Material Function</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Normal</span></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Power</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0;align-self:flex-start"><span>Result</span><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg></div>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:max-content">
+          <div style="padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#B8B8B8 46%,#0a0a0c) 0%,color-mix(in srgb,#B8B8B8 30%,#0c0d0f) 55%,color-mix(in srgb,#B8B8B8 13%,#0f1012) 100%)">
+            <span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">Multiply</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:26px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>A</span></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>B</span></div>
+            </div>
+            <svg width="16" height="12" viewBox="0 0 16 12" style="display:block;align-self:flex-start"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg>
+          </div>
+        </div>
+        <div style="background:#0F0F11;border:1px solid rgba(150,150,150,0.5);border-radius:8px;box-shadow:0 10px 22px rgba(0,0,0,0.55);font-family:Roboto,Arial,sans-serif;width:236px;box-sizing:border-box">
+          <div style="padding:6px 9px;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);background:linear-gradient(90deg,color-mix(in srgb,#B8B8B8 46%,#0a0a0c) 0%,color-mix(in srgb,#B8B8B8 30%,#0c0d0f) 55%,color-mix(in srgb,#B8B8B8 13%,#0f1012) 100%)">
+            <span style="display:block;font-size:13px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 1px rgba(0,0,0,0.85);line-height:1.2">M_Rock</span><span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.6)">Surface &middot; Opaque &middot; Default Lit</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;padding:9px 10px 12px;background:linear-gradient(180deg,#17171A,#0F0F11 55%);border-radius:0 0 7px 7px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#DCDCDC"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Base Color</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Metallic</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#DCDCDC"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Roughness</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#DCDCDC" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Emissive Color</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#E0E0E0"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="#DCDCDC"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#DCDCDC"></path></svg><span>Normal</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#61646A"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#55585C" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#55585C"></path></svg><span>Opacity</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#61646A"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#55585C" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#55585C"></path></svg><span>Opacity Mask</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#61646A"><svg width="16" height="12" viewBox="0 0 16 12" style="display:block"><circle cx="5" cy="6" r="3.6" fill="none" stroke="#55585C" stroke-width="1.7"></circle><path d="M11.2 3.4 14 6l-2.8 2.6z" fill="#55585C"></path></svg><span>Refraction</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div style="margin:0 0 14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#7E838B">FIG 07 &middot; TYPE-TINTED HEADERS, UNIFORM PINS, CHANNEL-SPLIT OUTPUTS (&asymp;), RESULT NODE WITH INACTIVE INPUTS</div>
+    <p style="margin:0;max-width:72ch;font-size:13px;line-height:1.6;color:#8A8E95">Density devices are Materials-specific: expressions preview their result live inside the node; constants print their value as the title; the most common expressions place with single-key shortcuts (1&ndash;4 for constants, T texture, S/V parameters, M multiply, A add, L lerp). On the result node, inputs unusable under the current Blend Mode / Shading Model gray out. The node being previewed gets a blue border &mdash; <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9CDD3">FColor(70,100,200)</span>.</p>
+  </section>
+
+  <section id="s11" data-screen-label="11 Comparison" style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">11</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Blueprints &times; Materials</h2></div>
+    <div style="border:1px solid #2B2D31;border-radius:10px;overflow:hidden;max-width:880px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:0.85fr 1.2fr 1.2fr;gap:0 16px;background:#1B1C1F;padding:9px 16px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#8A8E95"><span>ASPECT</span><span style="color:#79C9FF">BLUEPRINTS</span><span style="color:#FFCA23">MATERIALS</span></div>
+      <sc-for list="{{ cmpRows }}" as="c" hint-placeholder-count="7">
+        <div style="display:grid;grid-template-columns:0.85fr 1.2fr 1.2fr;gap:0 16px;padding:10px 16px;border-top:1px solid #232529">
+          <span style="font-size:12.5px;color:#E4E6E9;font-weight:500">{{ c.a }}</span>
+          <span style="font-size:12.5px;line-height:1.5;color:#9DA1A8">{{ c.b }}</span>
+          <span style="font-size:12.5px;line-height:1.5;color:#9DA1A8">{{ c.m }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;max-width:72ch;font-size:14.5px;line-height:1.65;color:#B9BDC4;text-wrap:pretty">Shared between both: the canvas and grid, Roboto with shadowed white titles, the dark card + tinted gradient header construction, comment boxes, amber selection, reroute knots, and the compile-banner language. The split is only in what color <em style="font-style:normal;color:#E0E2E5">means</em> &mdash; role in Blueprints, type in Materials.</p>
+  </section>
+
+  <section id="s12" data-screen-label="12 Appendix" style="margin:0">
+    <div style="display:flex;align-items:baseline;gap:14px;margin:0 0 14px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E9A339;letter-spacing:0.08em">12</span><h2 style="margin:0;font-size:24px;font-weight:600;color:#F2F3F5">Appendix &mdash; sources &amp; conversion</h2></div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:760px;margin-bottom:24px">
+      <div style="display:flex;gap:14px;padding:12px 16px;border:1px solid #232529;border-radius:8px;background:#141518"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E9A339;flex:0 0 84px">TOKENS</span><span style="font-size:13px;line-height:1.55;color:#9DA1A8">Pin and title colors are <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9CDD3">UGraphEditorSettings</span> defaults &mdash; user-editable under Editor Preferences &rarr; Graph Editors, persisted to <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9CDD3">[/Script/GraphEditor.GraphEditorSettings]</span> in EditorPerProjectUserSettings.ini. Everything shown here is the out-of-box default.</span></div>
+      <div style="display:flex;gap:14px;padding:12px 16px;border:1px solid #232529;border-radius:8px;background:#141518"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E9A339;flex:0 0 84px">CONVERSION</span><span style="font-size:13px;line-height:1.55;color:#9DA1A8">Tokens are linear-space floats; screens are sRGB. Hex values use the standard transfer function <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9CDD3">srgb = 1.055&middot;lin<sup>1/2.4</sup> &minus; 0.055</span> (lin &gt; 0.0031308), rounded per channel.</span></div>
+      <div style="display:flex;gap:14px;padding:12px 16px;border:1px solid #232529;border-radius:8px;background:#141518"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E9A339;flex:0 0 84px">MATERIALS</span><span style="font-size:13px;line-height:1.55;color:#9DA1A8">Material header routing is from <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9CDD3">UMaterialGraphNode::GetNodeTitleColor()</span>: bool &rarr; BooleanPinTypeColor, scalar &rarr; FloatPinTypeColor, vector &rarr; VectorPinTypeColor, object &rarr; ObjectPinTypeColor, function calls &rarr; FunctionCallNodeTitleColor, outputs &rarr; ResultNodeTitleColor.</span></div>
+      <div style="display:flex;gap:14px;padding:12px 16px;border:1px solid #232529;border-radius:8px;background:#141518"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E9A339;flex:0 0 84px">&asymp; VALUES</span><span style="font-size:13px;line-height:1.55;color:#9DA1A8">Canvas grays, node body/border, selection amber, cast teal, channel-split pin tints, and LOD thresholds come from Slate style brushes, not settings tokens &mdash; they are sampled approximations and can shift between engine versions.</span></div>
+    </div>
+    <p style="margin:0;max-width:72ch;font-size:11.5px;line-height:1.6;color:#6B6F76">Unofficial study reference, not affiliated with or endorsed by Epic Games. Unreal Engine, Blueprint, and the editor designs referenced are trademarks and &copy; Epic Games, Inc. Node figures are illustrative HTML recreations for analysis, not engine assets.</p>
+  </section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;figureGrid&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Figures&quot;},&quot;animateWires&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Figures&quot;},&quot;showLinear&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Tables&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      figureGrid: this.props.figureGrid ?? true,
+      animateWires: this.props.animateWires ?? true,
+      showLinear: this.props.showLinear ?? true,
+      tocItems: [
+        { id: "s01", num: "01", label: "Scope & method" },
+        { id: "s02", num: "02", label: "Canvas & grid" },
+        { id: "s03", num: "03", label: "Typography & density" },
+        { id: "s04", num: "04", label: "Blueprint node anatomy" },
+        { id: "s05", num: "05", label: "Node roles & header tints" },
+        { id: "s06", num: "06", label: "The pin type system" },
+        { id: "s07", num: "07", label: "Wires & routing" },
+        { id: "s08", num: "08", label: "Selection & feedback" },
+        { id: "s09", num: "09", label: "Comments & organization" },
+        { id: "s10", num: "10", label: "The Material graph system" },
+        { id: "s11", num: "11", label: "Blueprints \u00d7 Materials" },
+        { id: "s12", num: "12", label: "Appendix" }
+      ],
+      titleRows: [
+        { name: "Event", hex: "#FF0000", lin: "1.00, 0.00, 0.00", use: "BeginPlay, Tick, input events, custom events" },
+        { name: "Function call", hex: "#79C9FF", lin: "0.19, 0.58, 1.00", use: "Impure & latent calls; material function calls" },
+        { name: "Pure function", hex: "#AAEDA0", lin: "0.40, 0.85, 0.35", use: "Side-effect-free calls \u2014 no exec pins" },
+        { name: "Parent call", hex: "#FF7300", lin: "1.00, 0.17, 0.00", use: "Call to Parent Function overrides" },
+        { name: "Function entry / exit", hex: "#CB00FF", lin: "0.60, 0.00, 1.00", use: "Entry node inside function graphs" },
+        { name: "Result", hex: "#FFD3AA", lin: "1.00, 0.65, 0.40", use: "Function Result; material custom outputs" },
+        { name: "Exec utility", hex: "#FFFFFF", lin: "1.00, 1.00, 1.00", use: "Branch & flow control \u2014 renders silver" },
+        { name: "Cast \u2248", hex: "#0D8080", lin: "sampled", use: "Dynamic casts \u2014 dark turquoise" },
+        { name: "Preview border", hex: "#4664C8", lin: "FColor 70,100,200", use: "Material node currently previewed" }
+      ],
+      pinRows: [
+        { name: "Exec", hex: "#FFFFFF", lin: "1.00, 1.00, 1.00", note: "Flow, not data; chevron shape" },
+        { name: "Boolean", hex: "#950000", lin: "0.30, 0.00, 0.00", note: "Also Static Bool / Switch headers in Materials" },
+        { name: "Byte / Enum", hex: "#006F65", lin: "0.00, 0.16, 0.13", note: "Enumerations share the byte tint" },
+        { name: "Integer", hex: "#1FE3AF", lin: "0.01, 0.77, 0.43", note: "" },
+        { name: "Integer64", hex: "#ACE3AF", lin: "0.41, 0.77, 0.43", note: "" },
+        { name: "Float", hex: "#A1FF45", lin: "0.36, 1.00, 0.06", note: "Canonical scalar green across both editors" },
+        { name: "Double", hex: "#38D500", lin: "0.04, 0.67, 0.00", note: "Native double pins; BP floats keep lime" },
+        { name: "Name", hex: "#CD82FF", lin: "0.61, 0.22, 1.00", note: "" },
+        { name: "String", hex: "#FF00D4", lin: "1.00, 0.00, 0.66", note: "" },
+        { name: "Text", hex: "#E77CAA", lin: "0.80, 0.20, 0.40", note: "Localized text" },
+        { name: "Vector", hex: "#FFCA23", lin: "1.00, 0.59, 0.02", note: "Also vector constants / params in Materials" },
+        { name: "Rotator", hex: "#A0B4FF", lin: "0.35, 0.45, 1.00", note: "" },
+        { name: "Transform", hex: "#FF7300", lin: "1.00, 0.17, 0.00", note: "" },
+        { name: "Struct", hex: "#0059CB", lin: "0.00, 0.10, 0.60", note: "Hit results, custom structs" },
+        { name: "Object", hex: "#00AAF5", lin: "0.00, 0.40, 0.91", note: "Actor / component refs; textures in Materials" },
+        { name: "Soft Object", hex: "#95FFFF", lin: "0.30, 1.00, 1.00", note: "Soft references" },
+        { name: "Class", hex: "#5900BC", lin: "0.10, 0.00, 0.50", note: "" },
+        { name: "Soft Class", hex: "#FF95FF", lin: "1.00, 0.30, 1.00", note: "" },
+        { name: "Interface", hex: "#F1FFAA", lin: "0.88, 1.00, 0.40", note: "" },
+        { name: "Delegate", hex: "#FF3838", lin: "1.00, 0.04, 0.04", note: "Event bindings; square pin" },
+        { name: "Wildcard", hex: "#817A7A", lin: "0.22, 0.20, 0.20", note: "Adopts a type on first connection" },
+        { name: "Default (fallback)", hex: "#E1CBAA", lin: "0.75, 0.60, 0.40", note: "Unregistered types" }
+      ],
+      matRows: [
+        { name: "Static Bool / Static Switch", hex: "#950000", token: "BooleanPinTypeColor" },
+        { name: "Scalar constant & parameter", hex: "#A1FF45", token: "FloatPinTypeColor" },
+        { name: "Vector constant & parameter", hex: "#FFCA23", token: "VectorPinTypeColor" },
+        { name: "Textures & object refs", hex: "#00AAF5", token: "ObjectPinTypeColor" },
+        { name: "Material Function call", hex: "#79C9FF", token: "FunctionCallNodeTitleColor" },
+        { name: "Function / Custom Output", hex: "#FFD3AA", token: "ResultNodeTitleColor" },
+        { name: "Previewed node border", hex: "#4664C8", token: "FColor(70, 100, 200)" },
+        { name: "All other expressions", hex: "#9A9A9A", token: "neutral gray \u2248" }
+      ],
+      cmpRows: [
+        { a: "What color means", b: "Node role in the header; data type on pins & wires", m: "Output data type in the header; pins carry no type" },
+        { a: "Execution model", b: "Explicit exec chain \u2014 white chevrons, 2.5 px wires", m: "None \u2014 pure dataflow converging on the result node" },
+        { a: "Pin styling", b: "22 type tints; shape encodes container", m: "Uniform pale circles; channel splits tinted R/G/B \u2248" },
+        { a: "Wire palette", b: "Inherits the output pin tint", m: "Monochrome gray-white" },
+        { a: "In-node previews", b: "None \u2014 debug watch bubbles only", m: "Live thumbnails on expressions and samples" },
+        { a: "Density devices", b: "Compact math glyphs, GET capsules, advanced-pin expander", m: "Value-as-title constants, single-key shortcuts, tiny bodies" },
+        { a: "Error surfacing", b: "ERROR! / WARNING! banners + compiler log", m: "Banner + stats panel; grayed inactive result inputs" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

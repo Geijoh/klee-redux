@@ -15,9 +15,11 @@ import { KleeNodeActivateDetail } from "../../events";
 
 export abstract class NodeControl extends Container {
 
-    private static readonly _SELECTION_COLOR = 'rgb(231,158,0)';
+    // UE5 graph editor defaults: amber selection wrap, and the previewed-node
+    // border from FColor(70,100,200).
+    private static readonly _SELECTION_COLOR = 'rgb(240,163,43)';
     private static readonly _SELECTION_LINE_WIDTH = 2.5;
-    private static readonly _PREVIEW_COLOR = 'rgb(69,166,255)';
+    private static readonly _PREVIEW_COLOR = 'rgb(70,100,200)';
     private static readonly _PREVIEW_LINE_WIDTH = 3;
 
     private _node: Node;
