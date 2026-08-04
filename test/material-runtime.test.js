@@ -137,11 +137,13 @@ test("Material graphs expose inspection, conservative root inputs, and W preview
     // blend mode; it never removes them, so every serialized pin stays rendered.
     assert.deepEqual(
         root.pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name),
-        ["Base Color", "Final Color", "Opacity", "Opacity Mask"]
+        ["Final Color", "Opacity", "Opacity Mask"],
+        "UI domain drops the Surface-domain pins entirely"
     );
     assert.deepEqual(
         root.pins.filter(pin => pin.pinProperty.inactive).map(pin => pin.pinProperty.name),
-        ["Base Color", "Opacity Mask"]
+        ["Opacity Mask"],
+        "Translucent grays Opacity Mask but keeps it rendered"
     );
     assert.equal(root.previewed, true);
     assert.equal(viewer.getPreviewState().active, false);
@@ -155,18 +157,12 @@ test("Material graphs expose inspection, conservative root inputs, and W preview
     hiddenAllowedViewer.display(hiddenAllowedRoot, {
         graph: { material: { rootInputs: ["Final Color", "Opacity"] } },
     });
-    // Unreal's own bHidden still removes a pin; the root policy only dims, so
-    // every other serialized pin stays rendered whether active or not.
+    // An authored rootInputs list states exactly which pins the node has, so
+    // pins outside it are dropped and Unreal's own bHidden still removes one.
     assert.deepEqual(
         hiddenAllowedViewer.app.scene.nodes[0].pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name),
-        ["Base Color", "Opacity", "Opacity Mask"],
+        ["Opacity"],
         "root policy must preserve Unreal's serialized hidden state"
-    );
-    assert.deepEqual(
-        hiddenAllowedViewer.app.scene.nodes[0].pins
-            .filter(pin => pin.pinProperty.inactive).map(pin => pin.pinProperty.name),
-        ["Base Color", "Opacity Mask"],
-        "pins outside the authored root-input list are dimmed, not removed"
     );
     assert.equal(viewer.getPreviewState().nodeName, root.name);
 

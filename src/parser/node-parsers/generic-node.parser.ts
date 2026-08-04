@@ -105,14 +105,22 @@ export class GenericNodeParser extends NodeParser {
 
     private applyMaterialRootInputPolicy(data: ParsingNodeData): void {
         if (!isMaterialRootNodeClass(data.node.class)) return;
-        const activeRootInputs = data.graphInspection?.material?.rootInputPolicy.activeInputs;
-        if (!activeRootInputs) return;
-        const activeInputs = new Set(activeRootInputs.map(input => input.toLowerCase()));
+        const policy = data.graphInspection?.material?.rootInputPolicy;
+        if (!policy?.domainInputs) return;
+        // Two tiers, and Unreal treats them differently. Inputs the Material
+        // domain does not have are absent from the result node entirely; inputs
+        // the domain has but the current blend mode cannot use are grayed out.
+        const domainInputs = new Set(policy.domainInputs.map(input => input.toLowerCase()));
+        const activeInputs = new Set((policy.activeInputs || policy.domainInputs)
+            .map(input => input.toLowerCase()));
         for (const property of data.node.customProperties) {
             if (!(property instanceof PinProperty)) continue;
-            // Unreal grays inactive root inputs out; it never removes them, so
-            // the node keeps the shape the editor shows.
-            property.inactive = !activeInputs.has((property.name || "").toLowerCase());
+            const name = (property.name || "").toLowerCase();
+            if (!domainInputs.has(name)) {
+                property.hidden = true;
+                continue;
+            }
+            property.inactive = !activeInputs.has(name);
         }
     }
 

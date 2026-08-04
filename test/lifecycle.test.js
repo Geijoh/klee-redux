@@ -118,6 +118,9 @@ test("a second Material root is reported instead of silently replacing the first
 
 const UI_ROOT = blendMode => [
     'Begin Object Class=/Script/UnrealEd.MaterialGraphNode_Root Name="MaterialGraphNode_Root_0"',
+    // Surface-domain pins the editor does not put on a UI result node at all.
+    'CustomProperties Pin (PinId=R0,PinName="Base Color",PinType.PinCategory="materialinput",)',
+    'CustomProperties Pin (PinId=R6,PinName="Metallic",PinType.PinCategory="materialinput",)',
     'CustomProperties Pin (PinId=R1,PinName="Final Color",PinType.PinCategory="materialinput",)',
     'CustomProperties Pin (PinId=R2,PinName="Opacity",PinType.PinCategory="materialinput",)',
     'CustomProperties Pin (PinId=R3,PinName="Opacity Mask",PinType.PinCategory="materialinput",)',
@@ -151,7 +154,7 @@ test("UI root inputs gray out per blend mode, matching the editor", () => {
         assert.deepEqual(
             root.pins.filter(pin => pin.visible).map(pin => pin.pinProperty.name),
             ["Final Color", "Opacity", "Opacity Mask", "Screen Position", "Front Material"],
-            `${blendMode}: every serialized root pin must stay rendered`
+            `${blendMode}: the UI domain's pins, and only those, must render`
         );
         assert.deepEqual(
             root.pins.filter(pin => pin.pinProperty.inactive).map(pin => pin.pinProperty.name),
