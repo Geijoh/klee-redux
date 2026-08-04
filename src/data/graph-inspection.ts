@@ -36,6 +36,9 @@ export interface KleeDisplayOptions {
 
 export interface KleeRootInputPolicy {
     mode: "explicit" | "table" | "unfiltered";
+    /** Pins the Material domain has at all. Anything else is not rendered. */
+    domainInputs?: string[];
+    /** Of the domain's pins, those usable under the current settings. The rest render grayed. */
     activeInputs?: string[];
     ruleset?: string;
     reason: string;

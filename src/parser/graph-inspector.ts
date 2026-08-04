@@ -25,9 +25,15 @@ export function isMaterialRootNodeClass(className: string | undefined): boolean 
     ));
 }
 
-// UI-domain root pins that stay usable under every blend mode. Only the
-// opacity pins are blend-mode dependent: Opacity Mask on Masked, Opacity on the
-// blended modes, and neither on Opaque or ColorTransmittanceOnly.
+// A UI-domain result node only *has* these inputs; the Surface-domain pins
+// (Base Color, Metallic, Normal and the rest) are not present on it at all.
+const UI_DOMAIN_ROOT_INPUTS = [
+    "Final Color", "Opacity", "Opacity Mask", "Screen Position", "Front Material",
+];
+
+// Of those, these stay usable under every blend mode. Only the opacity pins
+// vary: Opacity Mask on Masked, Opacity on the blended modes, and neither on
+// Opaque or ColorTransmittanceOnly.
 const UI_ALWAYS_ACTIVE_ROOT_INPUTS = ["Final Color", "Screen Position", "Front Material"];
 
 const UI_ROOT_INPUTS: { [blendMode: string]: string[] } = {
@@ -148,6 +154,7 @@ function resolveRootInputPolicy(
         }
         return {
             mode: "explicit",
+            domainInputs: unique(activeInputs),
             activeInputs: unique(activeInputs),
             reason: "Using the authored rootInputs list, intersected with the serialized root pins.",
         };
@@ -182,6 +189,7 @@ function resolveRootInputPolicy(
         }
         return {
             mode: "table",
+            domainInputs: activeInputs,
             activeInputs,
             ruleset: ROOT_INPUT_RULESET,
             reason: "Use Material Attributes was authored, so only the serialized Material Attributes input is active.",
@@ -190,25 +198,34 @@ function resolveRootInputPolicy(
 
     const domain = normalizeEnum(hints.domain, "md");
     const blendMode = normalizeEnum(hints.blendMode, "blend");
-    if ((domain === "ui" || domain === "userinterface") && blendMode && UI_ROOT_INPUTS[blendMode]) {
-        const allowed = new Set(UI_ROOT_INPUTS[blendMode].map(input => input.toLowerCase()));
-        const activeInputs = serializedRootInputs.filter(input => allowed.has(input.toLowerCase()));
-        if (activeInputs.length === 0) {
+    if (domain === "ui" || domain === "userinterface") {
+        const domainAllowed = new Set(UI_DOMAIN_ROOT_INPUTS.map(input => input.toLowerCase()));
+        const domainInputs = serializedRootInputs.filter(input => domainAllowed.has(input.toLowerCase()));
+        if (domainInputs.length === 0) {
             diagnostics.push({
                 code: "root-input-policy-no-match",
                 severity: "warning",
-                message: "The UI Material rule did not match a serialized root pin, so root pins were left unchanged.",
+                message: "The UI Material rule matched no serialized root pin, so root pins were left unchanged.",
             });
             return {
                 mode: "unfiltered",
                 reason: `The ${ROOT_INPUT_RULESET} UI root-input rule matched no serialized pin.`,
             };
         }
+        // Without a recognized blend mode Klee cannot say which opacity pin is
+        // usable, so it renders the domain's pins and grays none of them.
+        const activeTable = blendMode ? UI_ROOT_INPUTS[blendMode] : undefined;
+        const activeAllowed = activeTable
+            ? new Set(activeTable.map(input => input.toLowerCase()))
+            : domainAllowed;
         return {
             mode: "table",
-            activeInputs,
+            domainInputs,
+            activeInputs: domainInputs.filter(input => activeAllowed.has(input.toLowerCase())),
             ruleset: ROOT_INPUT_RULESET,
-            reason: `Applied the conservative ${ROOT_INPUT_RULESET} UI/${hints.blendMode} root-input table.`,
+            reason: activeTable
+                ? `Applied the conservative ${ROOT_INPUT_RULESET} UI/${hints.blendMode} root-input table.`
+                : `Applied the ${ROOT_INPUT_RULESET} UI root-input set; no blend mode was supplied, so none are grayed.`,
         };
     }
 
