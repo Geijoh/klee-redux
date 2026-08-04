@@ -229,9 +229,22 @@ function resolveRootInputPolicy(
         };
     }
 
+    // Unreal filters the result node using the material asset's own settings.
+    // Clipboard text does not carry MaterialDomain or BlendMode, so without a
+    // hint Klee cannot know which inputs the node really has, and showing every
+    // serialized pin is the only honest option.
+    if (!domain) {
+        diagnostics.push({
+            code: "root-input-domain-unknown",
+            severity: "info",
+            message: "No Material Domain was serialized or supplied, so every serialized root pin is shown. Supply the domain and blend mode to match the result node Unreal draws.",
+        });
+    }
     return {
         mode: "unfiltered",
-        reason: "Material metadata was insufficient or unsupported; serialized root pins were left unchanged.",
+        reason: domain
+            ? `No root-input table is available for the '${hints.domain}' Material Domain; serialized root pins were left unchanged.`
+            : "No Material Domain was available, so serialized root pins were left unchanged.",
     };
 }
 
