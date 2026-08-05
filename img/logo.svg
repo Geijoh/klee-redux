@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="512px" height="512px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g>
+        <path d="M322.942,81.074l-141.744,-50.186l0,400.038l141.744,50.186l-0,-400.038Zm-141.744,-50.186l-181.198,50.186l-0,400.038l181.198,-50.186l0,-400.038Zm330.802,25.093l-189.058,25.093l-0,400.038l189.058,-25.093l-0,-400.038Z" style="fill:#242e4e;"/>
+        <g id="Grid">
+            <path d="M483.821,156.695l-160.879,21.353l-141.744,-50.186l-59.284,16.967" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M483.821,222.07l-160.879,21.354l-141.744,-50.187l-59.284,16.968" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M483.821,287.446l-160.879,21.353l-141.744,-50.187l-59.284,16.968" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M417.37,100.327l0,250.13" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M350.919,108.976l0,250.13" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M284.468,99.129l0,250.13" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M218.017,75.693l0,250.13" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M151.567,70.995l-0,250.13" style="fill:none;stroke:#575d74;stroke-width:3px;"/>
+            <path d="M483.821,91.319l-160.879,21.354l-141.744,-50.187l-59.284,16.968" style="fill:none;stroke:#cbcccf;stroke-width:6px;"/>
+            <path d="M483.821,91.319l-0,250.131" style="fill:none;stroke:#cbcccf;stroke-width:6px;"/>
+        </g>
+        <path d="M322.942,81.074l-141.744,-50.186l0,400.038l141.744,50.186l-0,-400.038Z" style="fill-opacity:0.4;"/>
+    </g>
+    <g>
+        <path d="M291.891,275.97c-0,-11.022 -8.948,-19.97 -19.97,-19.97l-178.635,0c-11.021,0 -19.97,8.948 -19.97,19.97l0,101.125c0,11.022 8.949,19.97 19.97,19.97l178.635,0c11.022,0 19.97,-8.948 19.97,-19.97l-0,-101.125Z"/>
+        <clipPath id="_clip1">
+            <path d="M291.891,275.97c-0,-11.022 -8.948,-19.97 -19.97,-19.97l-178.635,0c-11.021,0 -19.97,8.948 -19.97,19.97l0,101.125c0,11.022 8.949,19.97 19.97,19.97l178.635,0c11.022,0 19.97,-8.948 19.97,-19.97l-0,-101.125Z"/>
+        </clipPath>
+        <g clip-path="url(#_clip1)">
+            <rect x="73.316" y="256" width="218.575" height="32.214" style="fill:#b81219;"/>
+            <path d="M266.687,306.523l-7.372,-0l0,20.01l7.372,-0l9.492,-10.005l-9.492,-10.005Z" style="fill:#fff;stroke:#fff;stroke-width:4px;"/>
+            <g>
+                <circle cx="266.687" cy="361.149" r="8.432" style="fill:none;stroke:#fff;stroke-width:4px;"/>
+                <circle cx="277.205" cy="361.149" r="2.086" style="fill:#cbcccf;stroke:#fff;stroke-width:4px;"/>
+            </g>
+        </g>
+        <path d="M269.851,316.528c93.547,1.277 75.286,-51.369 168.833,-50.995" style="fill:none;stroke:#fff;stroke-width:4px;"/>
+    </g>
+</svg>
