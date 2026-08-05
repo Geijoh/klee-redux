@@ -8,7 +8,7 @@ const OVERLAY_CSS = `
 .${OVERLAY_CLASS} {
     position: relative;
     display: block;
-    color: #e8ecf4;
+    color: #e2e6ee;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.2;
 }
@@ -24,7 +24,7 @@ const OVERLAY_CSS = `
     gap: 6px;
     align-items: center;
     padding: 6px;
-    background: rgba(18, 22, 30, 0.85);
+    background: rgba(24, 24, 26, 0.85);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 8px;
     backdrop-filter: blur(8px);
@@ -37,7 +37,7 @@ const OVERLAY_CSS = `
 .${OVERLAY_CLASS} .klee-toolbar button,
 .${OVERLAY_CLASS} .klee-toolbar .klee-zoom-display {
     background: transparent;
-    color: #d8dde8;
+    color: #d9dade;
     border: none;
     border-radius: 5px;
     height: 28px;
@@ -60,11 +60,11 @@ const OVERLAY_CSS = `
     background: rgba(255,255,255,0.10);
 }
 .${OVERLAY_CLASS} .klee-toolbar button:focus-visible {
-    outline: 2px solid #73b9ff;
+    outline: 2px solid #f3b04a;
     outline-offset: 2px;
 }
 .${OVERLAY_CLASS} canvas:focus-visible {
-    outline: 2px solid #73b9ff;
+    outline: 2px solid #f3b04a;
     outline-offset: -2px;
 }
 .${OVERLAY_CLASS} .klee-toolbar button:disabled {
@@ -91,7 +91,7 @@ const OVERLAY_CSS = `
 }
 .${OVERLAY_CLASS} .klee-toolbar .klee-zoom-display {
     cursor: default;
-    color: #a7b0c0;
+    color: #9aa0ab;
     min-width: 44px;
     font-variant-numeric: tabular-nums;
 }
@@ -102,7 +102,7 @@ const OVERLAY_CSS = `
     display: none;
     align-items: center;
     gap: 4px;
-    background: rgba(18, 22, 30, 0.92);
+    background: rgba(24, 24, 26, 0.92);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
     padding: 4px 6px;
@@ -118,17 +118,17 @@ const OVERLAY_CSS = `
     background: transparent;
     border: none;
     outline: none;
-    color: #e8ecf4;
+    color: #e2e6ee;
     font-size: 12px;
     min-width: 160px;
     padding: 4px 6px;
     font-family: inherit;
 }
 .${OVERLAY_CLASS} .klee-search input::placeholder {
-    color: #6f7a8c;
+    color: #767b85;
 }
 .${OVERLAY_CLASS} .klee-search .klee-search-count {
-    color: #8892a3;
+    color: #8b909a;
     font-size: 11px;
     min-width: 32px;
     text-align: center;
@@ -136,7 +136,7 @@ const OVERLAY_CSS = `
 }
 .${OVERLAY_CLASS} .klee-search button {
     background: transparent;
-    color: #d8dde8;
+    color: #d9dade;
     border: none;
     border-radius: 4px;
     width: 22px;
@@ -156,7 +156,7 @@ const OVERLAY_CSS = `
     bottom: 10px;
     width: 180px;
     height: 120px;
-    background: rgba(14, 17, 23, 0.85);
+    background: rgba(20, 20, 22, 0.85);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
     overflow: hidden;
@@ -174,9 +174,9 @@ const OVERLAY_CSS = `
     left: 50%;
     top: 14px;
     transform: translateX(-50%);
-    background: rgba(14, 17, 23, 0.95);
+    background: rgba(20, 20, 22, 0.95);
     border: 1px solid rgba(255,255,255,0.08);
-    color: #e8ecf4;
+    color: #e2e6ee;
     padding: 8px 14px;
     border-radius: 6px;
     font-size: 12px;
@@ -202,7 +202,7 @@ const OVERLAY_CSS = `
 .${OVERLAY_CLASS} .klee-context-menu {
     position: absolute;
     min-width: 180px;
-    background: rgba(20, 24, 32, 0.98);
+    background: rgba(26, 26, 28, 0.98);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
     padding: 4px;
@@ -222,7 +222,7 @@ const OVERLAY_CSS = `
     text-align: left;
     background: transparent;
     border: none;
-    color: #e8ecf4;
+    color: #e2e6ee;
     padding: 6px 10px;
     border-radius: 5px;
     cursor: pointer;
@@ -236,7 +236,7 @@ const OVERLAY_CSS = `
     background: rgba(255,255,255,0.06);
 }
 .${OVERLAY_CLASS} .klee-context-menu .klee-menu-shortcut {
-    color: #6c7588;
+    color: #767b85;
     font-size: 11px;
 }
 .${OVERLAY_CLASS} .klee-context-menu .klee-menu-sep {
@@ -248,9 +248,9 @@ const OVERLAY_CSS = `
     position: absolute;
     right: 10px;
     bottom: 10px;
-    background: rgba(14,17,23,0.85);
+    background: rgba(20,20,22,0.85);
     border: 1px solid rgba(255,255,255,0.08);
-    color: #a7b0c0;
+    color: #9aa0ab;
     font-size: 10px;
     padding: 3px 8px;
     border-radius: 999px;
@@ -260,7 +260,7 @@ const OVERLAY_CSS = `
 }
 .${OVERLAY_CLASS} .klee-badge:hover {
     color: #fff;
-    background: rgba(20, 24, 32, 0.95);
+    background: rgba(26, 26, 28, 0.95);
 }
 .${OVERLAY_CLASS}.klee-embed .klee-toolbar {
     top: 8px;
