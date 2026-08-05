@@ -204,3 +204,49 @@ test("reloading a graph clears any movement", () => {
 
     viewer.destroy();
 });
+
+test("copying a selection produces Unreal clipboard text that parses back", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    const viewer = Klee.init(makeElement("canvas"));
+    viewer.display(MATERIAL_GRAPH);
+
+    assert.equal(viewer.selectionText, "", "nothing selected copies nothing");
+
+    const expression = viewer.app.scene.nodes.find(node => node.name === "MaterialGraphNode_0");
+    viewer.app.scene.selectOnly(expression);
+    const text = viewer.selectionText;
+
+    // The editor reads whole object blocks, so the text must be balanced.
+    assert.match(text, /^Begin Object Class=/);
+    assert.match(text, /End Object$/);
+    assert.equal(
+        (text.match(/Begin Object/g) || []).length,
+        (text.match(/End Object/g) || []).length,
+        "every Begin Object must be closed"
+    );
+    assert.match(text, /MaterialExpressionMultiply/, "the nested expression must survive");
+
+    // Round-trip: pasting it back into Klee must yield the same single node.
+    const pasted = Klee.init(makeElement("canvas"));
+    const inspection = pasted.display(text);
+    assert.equal(pasted.app.scene.nodes.length, 1);
+    assert.equal(pasted.app.scene.nodes[0].name, "MaterialGraphNode_0");
+    assert.equal(inspection.nodeCount, 1);
+
+    // A multi-node selection round-trips to the same node count. Counting
+    // "Begin Object" would over-count: stripLine removes indentation, so a
+    // node's nested MaterialExpression block also starts at column zero.
+    viewer.app.scene.selectAllNodes();
+    const bothPasted = Klee.init(makeElement("canvas"));
+    bothPasted.display(viewer.selectionText);
+    assert.deepEqual(
+        bothPasted.app.scene.nodes.map(node => node.name).sort(),
+        ["MaterialGraphNode_0", "MaterialGraphNode_Root_0"]
+    );
+    bothPasted.destroy();
+
+    pasted.destroy();
+    viewer.destroy();
+});

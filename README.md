@@ -8,6 +8,7 @@ These modifications include:
 * Material graph inspection and Unreal-style preview-target selection *(pixel rendering is not included)*
 * Node visuals that closer match the UE5 editor
 * Draggable nodes with a reset, and host-facing chrome colours
+* Copying a selection back out as Unreal-pasteable clipboard text
 
 ## Material graphs
 
@@ -74,6 +75,20 @@ The blue outline identifies the effective output target. This build does **not**
 compile Unreal expressions or render Material pixels: inspection and preview
 events explicitly report `pixelRenderingAvailable: false`, allowing a host to
 provide an honest unavailable state or attach a compatible renderer.
+
+## Copying nodes back to Unreal
+
+Selecting nodes and pressing `Ctrl+C` copies them as Unreal clipboard text, so
+they paste straight into a graph in the editor. Each node contributes its
+original object block; links to nodes that were not copied are dropped on paste,
+exactly as they are when copying a partial selection inside Unreal.
+
+```js
+viewer.selectionText; // the same text, or "" when nothing is selected
+```
+
+With nothing selected the clipboard is left untouched rather than overwritten
+with an empty string.
 
 ## Moving nodes
 
