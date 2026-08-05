@@ -7,6 +7,7 @@ These modifications include:
 * Ability to open referenced Material Functions
 * Material graph inspection and Unreal-style preview-target selection *(pixel rendering is not included)*
 * Node visuals that closer match the UE5 editor
+* Draggable nodes with a reset, and host-facing chrome colours
 
 ## Material graphs
 
@@ -73,6 +74,20 @@ The blue outline identifies the effective output target. This build does **not**
 compile Unreal expressions or render Material pixels: inspection and preview
 events explicitly report `pixelRenderingAvailable: false`, allowing a host to
 provide an honest unavailable state or attach a compatible renderer.
+
+## Moving nodes
+
+Dragging a node moves it and every other selected node, snapping to the 16px
+minor grid. The position the pasted graph gave each node is kept separately, so
+a layout can always be undone:
+
+```js
+viewer.hasMovedNodes;        // true once anything has been dragged
+viewer.resetNodePositions(); // returns true if it moved anything back
+```
+
+The toolbar shows a **Reset layout** button only while there is something to
+reset, and reloading a graph re-reads the authored positions.
 
 ## Releasing a viewer
 

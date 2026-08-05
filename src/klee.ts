@@ -53,6 +53,16 @@ export class Klee {
         return this.app.getPreviewState();
     }
 
+    /** True once any node has been dragged away from its authored position. */
+    public get hasMovedNodes(): boolean {
+        return this.app.hasMovedNodes;
+    }
+
+    /** Returns every node to the position the pasted graph gave it. */
+    public resetNodePositions(): boolean {
+        return this.app.resetNodePositions();
+    }
+
     /**
      * Releases the animation frame loop, window/document listeners and parsed
      * scene held by this viewer. Hosts that mount Klee repeatedly — single-page
