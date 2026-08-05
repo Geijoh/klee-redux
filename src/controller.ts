@@ -92,8 +92,12 @@ export class Controller {
     }
 
     onKeydown(ev : KeyboardEvent) {
+        // macOS puts the platform accelerator on Command, so a shortcut declared
+        // as "ctrl" has to match either key or copy, paste and select-all are
+        // simply unreachable on a Mac.
+        const accelerator = Boolean(ev.ctrlKey || ev.metaKey);
         for (const action of this._actions.filter(a => a.keycode === ev.code)) {
-            if(action.ctrl !== ev.ctrlKey) continue;
+            if(action.ctrl !== accelerator) continue;
 
             if (action.callback(ev)) {
                 ev.preventDefault();
