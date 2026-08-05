@@ -53,6 +53,11 @@ export class Klee {
         return this.app.getPreviewState();
     }
 
+    /** Copies every node as Unreal clipboard text, with the same toast as Ctrl+C. */
+    public copyAllNodes(): Promise<boolean> {
+        return this.app.copyAllToClipboard();
+    }
+
     /** Unreal clipboard text for the selected nodes; empty when nothing is selected. */
     public get selectionText(): string {
         return this.app.getSelectionText();

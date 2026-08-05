@@ -368,12 +368,25 @@ export class Application {
         return detail;
     }
 
-    public async copyAllToClipboard(): Promise<void> {
-        const text = this.getBlueprint();
+    /**
+     * Copies every node as Unreal clipboard text, reporting through the same
+     * toast the selection copy uses so both paths give identical feedback.
+     */
+    public async copyAllToClipboard(): Promise<boolean> {
+        const nodes = this._scene.nodes;
+        if (nodes.length === 0) {
+            this._overlay?.showToast("This graph has no nodes to copy");
+            return false;
+        }
         try {
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(`${this.getBlueprint()}\n`);
+            this._overlay?.showToast(nodes.length === 1
+                ? "Copied 1 node — paste into an Unreal graph"
+                : `Copied ${nodes.length} nodes — paste into an Unreal graph`);
+            return true;
         } catch (e) {
-            console.warn("Could not write blueprint to clipboard", e);
+            this._overlay?.showToast("This browser would not allow copying to the clipboard");
+            return false;
         }
     }
 
