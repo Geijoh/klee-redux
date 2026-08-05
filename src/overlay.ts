@@ -823,9 +823,8 @@ export class Overlay {
         addItem("Preview selected node", "W", () => { this.app.togglePreviewSelected(); },
             !this.app.inspection?.preview.targetSelectionAvailable);
         addSep();
-        addItem("Copy blueprint", "Ctrl+C", async () => {
+        addItem("Copy all nodes", "", async () => {
             await this.app.copyAllToClipboard();
-            this.showToast("Blueprint copied to clipboard");
         });
         addItem("Copy share link", "", async () => {
             await this.app.copyShareLink();
