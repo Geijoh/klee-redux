@@ -220,7 +220,7 @@ test("copying a selection produces Unreal clipboard text that parses back", () =
 
     // The editor reads whole object blocks, so the text must be balanced.
     assert.match(text, /^Begin Object Class=/);
-    assert.match(text, /End Object$/);
+    assert.match(text, /End Object\n$/, "Unreal's buffers end with a newline");
     assert.equal(
         (text.match(/Begin Object/g) || []).length,
         (text.match(/End Object/g) || []).length,
@@ -248,5 +248,38 @@ test("copying a selection produces Unreal clipboard text that parses back", () =
     bothPasted.destroy();
 
     pasted.destroy();
+    viewer.destroy();
+});
+
+test("a copied node reproduces its pasted text exactly, indentation included", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    // Indented exactly as Unreal exports it. Klee parses a stripped copy, but
+    // what it hands back to the clipboard has to be the original: Unreal's
+    // importer rejected the reconstructed, flush-left version.
+    const indented = [
+        'Begin Object Class=/Script/UnrealEd.MaterialGraphNode Name="MaterialGraphNode_9"',
+        '   Begin Object Class=/Script/Engine.MaterialExpressionMultiply Name="MaterialExpressionMultiply_9"',
+        '   End Object',
+        '   Begin Object Name="MaterialExpressionMultiply_9"',
+        '      MaterialExpressionEditorX=-64',
+        '      MaterialExpressionGuid=0A66DCFDE048FE7E6500A39A732B44E2',
+        '   End Object',
+        '   NodePosX=-64',
+        '   CustomProperties Pin (PinId=OUT9,PinName="Result",Direction="EGPD_Output",PinType.PinCategory="float",)',
+        'End Object',
+    ].join('\n');
+
+    const viewer = Klee.init(makeElement("canvas"));
+    viewer.display(indented);
+    const node = viewer.app.scene.nodes[0];
+
+    assert.equal(node.sourceText, indented, "the node must keep the buffer verbatim");
+    assert.match(node.sourceText, /^ {3}Begin Object Class=/m, "nested indentation must survive");
+
+    viewer.app.scene.selectOnly(node);
+    assert.equal(viewer.selectionText, `${indented}\n`, "copied text adds Unreal's trailing newline");
+
     viewer.destroy();
 });
