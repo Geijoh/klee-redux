@@ -1,11 +1,15 @@
 
 export class Constants {
-    public static readonly NODE_FONT = "12px sans-serif";
-    public static readonly NODE_HEADER_FONT = "bold 12px sans-serif";
-    public static readonly BLACK = "rgba(20,22,28,0.88)";
+    // Chrome only. Node body, borders and typography follow the host site's
+    // palette; pin and header tints stay on Unreal's own tokens, because there
+    // the colour carries meaning rather than style.
+    public static readonly NODE_FONT = "12px \"Geist\", system-ui, sans-serif";
+    public static readonly NODE_HEADER_FONT = "600 12px \"Geist\", system-ui, sans-serif";
+    public static readonly BLACK = "rgba(23,26,32,0.90)";
     public static readonly NODE_BACKGROUND_COLOR = Constants.BLACK;
-    public static readonly NODE_TEXT_COLOR = "rgb(240,240,240)";
-    public static readonly NODE_SUBTITLE_COLOR = "rgb(170,170,170)";
+    public static readonly NODE_BORDER_COLOR = "rgba(224,228,238,0.16)";
+    public static readonly NODE_TEXT_COLOR = "rgb(226,230,238)";
+    public static readonly NODE_SUBTITLE_COLOR = "rgb(150,158,172)";
 
     public static readonly NODE_MATHFUNC_TITLE_FONT = "bold 24px sans-serif";
     public static readonly NODE_MATHFUNC_SUBTITLE_FONT = "bold 12px sans-serif";

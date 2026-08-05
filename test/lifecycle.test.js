@@ -164,3 +164,43 @@ test("UI root inputs gray out per blend mode, matching the editor", () => {
         viewer.destroy();
     }
 });
+
+test("dragged nodes snap, report movement, and reset to their authored positions", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    const viewer = Klee.init(makeElement("canvas"));
+    viewer.display(MATERIAL_GRAPH);
+    const node = viewer.app.scene.nodes[1];
+    const authored = node.authoredPosition;
+
+    assert.equal(viewer.hasMovedNodes, false, "a freshly loaded graph has moved nothing");
+    assert.equal(viewer.resetNodePositions(), false, "there is nothing to reset yet");
+
+    node.moveTo(authored.x + 37, authored.y - 21);
+    assert.equal(node.moved, true);
+    assert.equal(viewer.hasMovedNodes, true);
+
+    assert.equal(viewer.resetNodePositions(), true);
+    assert.equal(node.position.x, authored.x, "x returns to the pasted position");
+    assert.equal(node.position.y, authored.y, "y returns to the pasted position");
+    assert.equal(viewer.hasMovedNodes, false);
+    assert.equal(node.moved, false);
+
+    viewer.destroy();
+});
+
+test("reloading a graph clears any movement", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    const viewer = Klee.init(makeElement("canvas"));
+    viewer.display(MATERIAL_GRAPH);
+    viewer.app.scene.nodes[0].moveBy(64, 64);
+    assert.equal(viewer.hasMovedNodes, true);
+
+    viewer.display(MATERIAL_GRAPH);
+    assert.equal(viewer.hasMovedNodes, false, "a reload re-reads the authored positions");
+
+    viewer.destroy();
+});

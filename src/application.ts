@@ -276,6 +276,25 @@ export class Application {
         this._scene.refresh();
     }
 
+    /** Called while dragging so the overlay can offer a reset. */
+    public notifyNodesMoved(): void {
+        this._overlay?.onNodesMoved();
+    }
+
+    public get hasMovedNodes(): boolean {
+        return this._scene.hasMovedNodes;
+    }
+
+    /** Returns nodes to the positions the pasted graph gave them. */
+    public resetNodePositions(): boolean {
+        const reset = this._scene.resetNodePositions();
+        if (reset) {
+            this.refresh();
+            this._overlay?.onNodesMoved();
+        }
+        return reset;
+    }
+
     public getPreviewState(): KleePreviewChangeDetail {
         const rootNodeName = this._inspection?.rootNodeName;
         const target = this._previewNodeName

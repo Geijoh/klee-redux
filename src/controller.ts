@@ -35,6 +35,9 @@ export class Controller {
 
     private hoveredControls: InteractableUserControl[] = [];
     private readonly _listeners = new AbortController();
+    /** Set when a left press lands on a node, so the drag moves rather than marquees. */
+    private _dragData: { origins: Array<{ node: NodeControl, x: number, y: number }> } | null = null;
+    private static readonly GRID_SNAP = 16;
 
     constructor(element: HTMLCanvasElement, app: Application) {
 
@@ -85,6 +88,7 @@ export class Controller {
         this._actions = [];
         this.hoveredControls = [];
         this._mouseDownData = null;
+        this._dragData = null;
     }
 
     onKeydown(ev : KeyboardEvent) {
@@ -105,6 +109,21 @@ export class Controller {
         this._mousePositionOfPreviousMove = this._mouseDownData.position;
 
         const mouseAbsolutePos = this.getAbsoluteMousePosition(ev);
+
+        if (ev.button === MouseButton.Left) {
+            const pressed = this.getIntersectingNodeControls(mouseAbsolutePos, new Vector2(0, 0))
+                .sort((a, b) => b.ZIndex - a.ZIndex)[0];
+            if (pressed) {
+                // Pressing an unselected node selects it first, so a drag always
+                // moves what is under the cursor rather than a stale selection.
+                if (!pressed.selected) this.app.scene.selectOnly(pressed);
+                const moving = this.app.scene.selectedNodes;
+                this._dragData = {
+                    origins: moving.map(node => ({ node, x: node.position.x, y: node.position.y })),
+                };
+            }
+        }
+
         let controls = this.getIntersectingControls(mouseAbsolutePos, new Vector2(0, 0));
         controls = controls.sort((c1, c2) => { return c1.ZIndex - c2.ZIndex; })
         for (let control of controls) {
@@ -153,11 +172,12 @@ export class Controller {
         if (this._mouseDownData && !consumed) {
             const delta = currentMousePosition.subtract(this._mouseDownData.position);
     
-            if (delta.x == 0 && delta.y == 0) {
+            if (delta.x == 0 && delta.y == 0 && !this._dragData) {
                 this.selectIntersectingControls(mouseAbsolutePos, new Vector2(0,0));
             }
         }
 
+        this._dragData = null;
         this._mouseDownData = null;
         this.app.refresh();
     }
@@ -180,6 +200,21 @@ export class Controller {
                 const scale = this.app.scene.camera.scale;
                 const deltaScreen = currentMousePosition.subtract(this._mouseDownData.position);
                 const deltaWorld = new Vector2(deltaScreen.x / scale, deltaScreen.y / scale);
+
+                if (this._dragData) {
+                    // Unreal snaps dragged nodes to the 16px minor grid.
+                    const snap = Controller.GRID_SNAP;
+                    for (const origin of this._dragData.origins) {
+                        origin.node.moveTo(
+                            Math.round((origin.x + deltaWorld.x) / snap) * snap,
+                            Math.round((origin.y + deltaWorld.y) / snap) * snap
+                        );
+                    }
+                    this.app.notifyNodesMoved();
+                    this.app.refresh();
+                    return false;
+                }
+
                 this.app.scene.refresh();
 
                 const mouseDownAbsolutePos = this.getAbsoluteMouseDownPosition(ev);

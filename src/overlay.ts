@@ -295,6 +295,7 @@ export class Overlay {
     private contextMenu: HTMLDivElement;
     private toast: HTMLDivElement;
     private previewButton: HTMLButtonElement;
+    private resetLayoutButton: HTMLButtonElement;
     private previewStatus: HTMLDivElement;
     private previewStatusId: string;
 
@@ -424,6 +425,14 @@ export class Overlay {
             this.updatePreviewControls(state);
         });
         this.toolbar.appendChild(this.previewButton);
+
+        this.resetLayoutButton = this.makeButton("Reset layout", "Return dragged nodes to their pasted positions");
+        this.resetLayoutButton.tabIndex = 0;
+        this.resetLayoutButton.hidden = true;
+        this.resetLayoutButton.addEventListener("click", () => {
+            this.app.resetNodePositions();
+        });
+        this.toolbar.appendChild(this.resetLayoutButton);
 
         const shareBtn = this.makeButton("Share", "Copy share link");
         shareBtn.addEventListener("click", async () => {
@@ -686,8 +695,15 @@ export class Overlay {
         this.drawMinimap();
     }
 
+    /** Shows the reset control exactly while there is something to reset. */
+    public onNodesMoved() {
+        if (this.destroyed || !this.resetLayoutButton) return;
+        this.resetLayoutButton.hidden = !this.app.hasMovedNodes;
+    }
+
     public onSceneRefreshed() {
         if (this.destroyed) return;
+        this.onNodesMoved();
         this.onCameraChanged();
         this.updatePreviewControls();
     }

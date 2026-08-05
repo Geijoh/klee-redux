@@ -1,4 +1,5 @@
 import { Canvas2D } from "../../canvas";
+import { Constants } from "../../constants";
 import { Vector2 } from "../../math/vector2";
 import { Node } from "../../data/nodes/node";
 import { PinControl } from "../pin.control";
@@ -17,7 +18,7 @@ export abstract class NodeControl extends Container {
 
     // UE5 graph editor defaults: amber selection wrap, and the previewed-node
     // border from FColor(70,100,200).
-    private static readonly _SELECTION_COLOR = 'rgb(240,163,43)';
+    private static readonly _SELECTION_COLOR = 'rgb(243,176,74)';
     private static readonly _SELECTION_LINE_WIDTH = 2.5;
     private static readonly _PREVIEW_COLOR = 'rgb(70,100,200)';
     private static readonly _PREVIEW_LINE_WIDTH = 3;
@@ -35,6 +36,8 @@ export abstract class NodeControl extends Container {
 
     private _selected: boolean;
     private _previewed: boolean;
+    /** Where the pasted graph placed this node. Dragging never overwrites it. */
+    private readonly _authoredPosition: Vector2;
     protected _stroke: {
         lineWidth: number,
         style: string
@@ -48,9 +51,10 @@ export abstract class NodeControl extends Container {
 
         this._selected = false;
         this._previewed = false;
+        this._authoredPosition = new Vector2(node.pos.x, node.pos.y);
         this._stroke = {
             lineWidth: 1,
-            style: 'rgb(0,0,0)'
+            style: Constants.NODE_BORDER_COLOR
         }
 
         this.showAdvanced = node.advancedPinDisplay;
@@ -108,6 +112,28 @@ export abstract class NodeControl extends Container {
 
     public get previewed(): boolean {
         return this._previewed;
+    }
+
+    /** True once the node sits anywhere other than its authored position. */
+    public get moved(): boolean {
+        return this.position.x !== this._authoredPosition.x
+            || this.position.y !== this._authoredPosition.y;
+    }
+
+    public moveBy(deltaX: number, deltaY: number): void {
+        this.position = new Vector2(this.position.x + deltaX, this.position.y + deltaY);
+    }
+
+    public moveTo(x: number, y: number): void {
+        this.position = new Vector2(x, y);
+    }
+
+    public get authoredPosition(): Vector2 {
+        return new Vector2(this._authoredPosition.x, this._authoredPosition.y);
+    }
+
+    public resetPosition(): void {
+        this.position = new Vector2(this._authoredPosition.x, this._authoredPosition.y);
     }
 
     public get nodeClass(): string {

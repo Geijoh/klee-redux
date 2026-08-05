@@ -65,6 +65,16 @@ export class Scene {
         return null;
     }
 
+    get hasMovedNodes(): boolean {
+        return this._nodes.some(node => node.moved);
+    }
+
+    resetNodePositions(): boolean {
+        if (!this.hasMovedNodes) return false;
+        this._nodes.forEach(node => node.resetPosition());
+        return true;
+    }
+
     get selectedNodes(): NodeControl[] {
         return this._nodes.filter(node => node.selected);
     }
