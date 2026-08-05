@@ -20,6 +20,20 @@ export interface GraphReference {
     navigable?: boolean;
 }
 
+/**
+ * Unreal's mount points decide ownership: /Engine/ is content shipped with the
+ * editor and /Script/ is native code compiled into it, so both belong to Epic
+ * rather than to the project. Everything else, /Game/ above all, is authored.
+ */
+export function isEngineOwnedPath(objectPath: string | undefined): boolean {
+    return Boolean(objectPath && (objectPath.startsWith("/Engine/") || isNativeScriptPath(objectPath)));
+}
+
+/** Native C++ has no graph to open, however navigable the reference looks. */
+export function isNativeScriptPath(objectPath: string | undefined): boolean {
+    return Boolean(objectPath?.startsWith("/Script/"));
+}
+
 export function getAssetNameFromObjectPath(objectPath: string | undefined): string | undefined {
     if (!objectPath) return undefined;
     const pathLeaf = objectPath.substring(objectPath.lastIndexOf('/') + 1);
@@ -43,8 +57,8 @@ export function createBlueprintFunctionReference(
         memberName,
         guid: dataReference.memberGUID,
         selfContext: dataReference.selfContext,
-        builtin: Boolean(objectPath?.startsWith("/Engine/") || objectPath?.startsWith("/Script/")),
-        navigable: Boolean(dataReference.selfContext || (objectPath && !objectPath.startsWith("/Script/"))),
+        builtin: isEngineOwnedPath(objectPath),
+        navigable: Boolean(dataReference.selfContext || (objectPath && !isNativeScriptPath(objectPath))),
     };
 }
 

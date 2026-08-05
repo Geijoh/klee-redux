@@ -3,7 +3,7 @@ import { NodeControl } from "../../controls/nodes/node.control";
 import { NodeParser } from "../node.parser";
 import { ParsingNodeData } from "../parsing-node-data";
 import { resolveMaterialNodeMetadata } from "../material-node-metadata";
-import { GraphReference } from "../../data/graph-reference";
+import { GraphReference, isEngineOwnedPath, isNativeScriptPath } from "../../data/graph-reference";
 import { isMaterialRootNodeClass } from "../graph-inspector";
 
 export class MaterialGraphNodeParser extends NodeParser {
@@ -24,9 +24,8 @@ export class MaterialGraphNodeParser extends NodeParser {
                 displayName: metadata.materialFunction.assetName,
                 assetName: metadata.materialFunction.assetName,
                 objectPath: metadata.materialFunction.objectPath,
-                builtin: metadata.materialFunction.objectPath.startsWith("/Engine/") ||
-                    metadata.materialFunction.objectPath.startsWith("/Script/"),
-                navigable: !metadata.materialFunction.objectPath.startsWith("/Script/"),
+                builtin: isEngineOwnedPath(metadata.materialFunction.objectPath),
+                navigable: !isNativeScriptPath(metadata.materialFunction.objectPath),
             };
             data.node.references = [reference];
         }

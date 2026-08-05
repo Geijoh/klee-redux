@@ -14,9 +14,11 @@ import { StructClass } from "../../controls/utils/color-utils";
 import { NodeParserRegistry } from "../node-parser-registry";
 import { NodeDataReferenceParser } from "../node-data-reference.parser";
 import {
+    GraphReference,
     createBlueprintFunctionReference,
     getAssetNameFromObjectPath,
-    GraphReference,
+    isEngineOwnedPath,
+    isNativeScriptPath,
     parseGraphObjectReference,
 } from "../../data/graph-reference";
 import { prettifyText } from "../../utils/text-utils";
@@ -167,8 +169,8 @@ export class GenericNodeParser extends NodeParser {
                         objectPath,
                         graphName: parsed.macroFuncName,
                         guid: parsed.graphGuid,
-                        builtin: Boolean(objectPath?.startsWith("/Engine/") || objectPath?.startsWith("/Script/")),
-                        navigable: Boolean(objectPath && !objectPath.startsWith("/Script/")),
+                        builtin: isEngineOwnedPath(objectPath),
+                        navigable: Boolean(objectPath && !isNativeScriptPath(objectPath)),
                     };
                     addReference(reference);
                     if (parsed.macroFuncName) data.node.title = displayName;
@@ -185,8 +187,8 @@ export class GenericNodeParser extends NodeParser {
                     assetName: getAssetNameFromObjectPath(parsed.objectPath),
                     objectPath: parsed.objectPath,
                     graphName: parsed.graphName,
-                    builtin: Boolean(parsed.objectPath?.startsWith("/Engine/") || parsed.objectPath?.startsWith("/Script/")),
-                    navigable: Boolean(parsed.objectPath && !parsed.objectPath.startsWith("/Script/")),
+                    builtin: isEngineOwnedPath(parsed.objectPath),
+                    navigable: Boolean(parsed.objectPath && !isNativeScriptPath(parsed.objectPath)),
                 };
                 addReference(reference);
                 if (parsed.graphName) data.node.title = parsed.graphName;

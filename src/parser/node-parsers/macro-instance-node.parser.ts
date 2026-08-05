@@ -10,7 +10,12 @@ import { insertSpacesBetweenCapitalizedWords } from "../../utils/text-utils";
 import { MacroInstanceNode } from "../../data/nodes/macro-instance.node";
 import { HeadlessNodeControl } from "../../controls/nodes/headless-node-control";
 import { BlueprintParserUtils } from "../blueprint-parser-utils";
-import { getAssetNameFromObjectPath, GraphReference } from "../../data/graph-reference";
+import {
+    GraphReference,
+    getAssetNameFromObjectPath,
+    isEngineOwnedPath,
+    isNativeScriptPath,
+} from "../../data/graph-reference";
 
 export class MacroInstanceNodeParser extends NodeParser {
 
@@ -36,8 +41,8 @@ export class MacroInstanceNodeParser extends NodeParser {
                     objectPath,
                     graphName: node.macroGraphReference.macroFuncName,
                     guid: node.macroGraphReference.graphGuid,
-                    builtin: Boolean(objectPath?.startsWith("/Engine/") || objectPath?.startsWith("/Script/")),
-                    navigable: Boolean(objectPath && !objectPath.startsWith("/Script/")),
+                    builtin: isEngineOwnedPath(objectPath),
+                    navigable: Boolean(objectPath && !isNativeScriptPath(objectPath)),
                 };
                 node.references = [reference];
             },

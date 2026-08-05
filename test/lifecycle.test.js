@@ -315,3 +315,37 @@ test("the platform accelerator works on both Control and Command", () => {
 
     viewer.destroy();
 });
+
+test("engine ownership is decided by Unreal's mount points", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    const call = (memberParent, memberName) => [
+        'Begin Object Class=/Script/BlueprintGraph.K2Node_CallFunction Name="K2Node_CallFunction_0"',
+        `FunctionReference=(MemberParent=Class'"${memberParent}"',MemberName="${memberName}")`,
+        'End Object',
+    ].join('\n');
+
+    const reference = source => {
+        const viewer = Klee.init(makeElement("canvas"));
+        viewer.display(source);
+        const detail = viewer.app.scene.nodes[0].activationDetail.reference;
+        viewer.destroy();
+        return detail;
+    };
+
+    // /Engine/ ships with the editor and has a graph to open.
+    const engine = reference(call("/Engine/Blueprints/BP_Helper.BP_Helper_C", "Recalculate"));
+    assert.equal(engine.builtin, true);
+    assert.equal(engine.navigable, true);
+
+    // /Script/ is native C++: Epic's, but there is nothing to open.
+    const native = reference(call("/Script/Engine.KismetMathLibrary", "Add_FloatFloat"));
+    assert.equal(native.builtin, true);
+    assert.equal(native.navigable, false);
+
+    // /Game/ is the project's own content.
+    const game = reference(call("/Game/UI/WBP_Menu.WBP_Menu_C", "Refresh"));
+    assert.equal(game.builtin, false);
+    assert.equal(game.navigable, true);
+});
