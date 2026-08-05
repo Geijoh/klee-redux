@@ -10,6 +10,9 @@ export class BlueprintParser {
 
     private readonly _OBJECT_STARTING_TAG = "Begin Object";
     private _lines: string[];
+    /** The buffer exactly as pasted. Parsing uses the stripped copy; the node
+     *  keeps these, so copying a selection reproduces Unreal's own text. */
+    private _rawLines: string[];
     private _nodeParserRegistry: NodeParserRegistry;
 
     constructor() {
@@ -22,14 +25,13 @@ export class BlueprintParser {
 
         let controls = new Array<NodeControl>();
 
-        this._lines = blueprintData
-            .replace(/\r/g, '')
-            .split('\n')
-            .map(line => BlueprintParserUtils.stripLine(line));
+        this._rawLines = blueprintData.replace(/\r/g, '').split('\n');
+        this._lines = this._rawLines.map(line => BlueprintParserUtils.stripLine(line));
 
         for (let i = 0; i < this._lines.length; ++i) {
             const line = this._lines[i];
             if (line.startsWith(this._OBJECT_STARTING_TAG)) {
+                const objectStart = i;
                 let objectBlock;
                 try {
                     objectBlock = readUnrealObjectBlock(this._lines, i);
@@ -43,9 +45,10 @@ export class BlueprintParser {
                     break;
                 }
 
+                const sourceLines = this._rawLines.slice(objectStart, objectBlock.endLineIndex + 1);
                 const parser = new GenericNodeParser(this._nodeParserRegistry);
                 try {
-                    controls.push(parser.parse(new ParsingNodeData(objectBlock.lines, inspection)));
+                    controls.push(parser.parse(new ParsingNodeData(objectBlock.lines, inspection, sourceLines)));
                 } catch (error) {
                     const nodeName = objectBlock.lines[0].match(/(?:^|\s)Name=(?:"([^"]+)"|([^\s]+))/)?.slice(1).find(Boolean);
                     inspection?.diagnostics.push({
@@ -55,7 +58,7 @@ export class BlueprintParser {
                         nodeName,
                     });
                     try {
-                        controls.push(parser.parseFallback(new ParsingNodeData(objectBlock.lines, inspection)));
+                        controls.push(parser.parseFallback(new ParsingNodeData(objectBlock.lines, inspection, sourceLines)));
                     } catch (fallbackError) {
                         inspection?.diagnostics.push({
                             code: "node-skipped",

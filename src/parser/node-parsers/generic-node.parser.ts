@@ -91,7 +91,7 @@ export class GenericNodeParser extends NodeParser {
             subTitles: [],
             guid: undefined,
             pos: new Vector2(0, 0),
-            sourceText: data.lines.join('\n'),
+            sourceText: data.sourceLines.join('\n'),
             customProperties: [],
             latent: false,
             references: [],

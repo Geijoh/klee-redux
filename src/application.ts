@@ -450,9 +450,9 @@ export class Application {
             return true;
         }
 
-        const text = selected
+        const text = `${selected
             .reduce((lines, node) => lines.concat(node.sourceText), [] as string[])
-            .join('\n');
+            .join('\n')}\n`;
 
         navigator.clipboard.writeText(text).then(() => {
             this._overlay?.showToast(selected.length === 1
@@ -467,9 +467,11 @@ export class Application {
 
     /** The Unreal clipboard text for the current selection, or an empty string. */
     public getSelectionText(): string {
-        return this._scene.selectedNodes
+        const selected = this._scene.selectedNodes;
+        if (selected.length === 0) return '';
+        return `${selected
             .reduce((lines, node) => lines.concat(node.sourceText), [] as string[])
-            .join('\n');
+            .join('\n')}\n`;
     }
 
     private pasteClipboardContentToCanvas(ev) {
