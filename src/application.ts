@@ -434,14 +434,42 @@ export class Application {
         return url;
     }
 
+    /**
+     * Copies the selected nodes as Unreal clipboard text, so they can be pasted
+     * straight into a graph in the editor. Each node contributes its original
+     * object block, which is what Unreal's importer reads; links to nodes that
+     * were not copied are dropped by the editor on paste, exactly as they are
+     * when copying a partial selection inside Unreal itself.
+     */
     private copyBlueprintSelectionToClipboard() {
-        console.log("Copy selection");
+        const selected = this._scene.selectedNodes;
+        if (selected.length === 0) {
+            // Writing an empty string would silently destroy the user's
+            // clipboard, so leave it alone and say why nothing happened.
+            this._overlay?.showToast("Select one or more nodes to copy");
+            return true;
+        }
 
-        let textLines = [];
-        this._scene.nodes.filter(n => n.selected).forEach(n => textLines = [].concat(textLines, n.sourceText));
-        navigator.clipboard.writeText(textLines.join('\n'));
+        const text = selected
+            .reduce((lines, node) => lines.concat(node.sourceText), [] as string[])
+            .join('\n');
+
+        navigator.clipboard.writeText(text).then(() => {
+            this._overlay?.showToast(selected.length === 1
+                ? "Copied 1 node — paste into an Unreal graph"
+                : `Copied ${selected.length} nodes — paste into an Unreal graph`);
+        }).catch(() => {
+            this._overlay?.showToast("This browser would not allow copying to the clipboard");
+        });
 
         return true;
+    }
+
+    /** The Unreal clipboard text for the current selection, or an empty string. */
+    public getSelectionText(): string {
+        return this._scene.selectedNodes
+            .reduce((lines, node) => lines.concat(node.sourceText), [] as string[])
+            .join('\n');
     }
 
     private pasteClipboardContentToCanvas(ev) {

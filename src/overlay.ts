@@ -846,7 +846,7 @@ export class Overlay {
         this.contextMenu.classList.remove("open");
     }
 
-    private showToast(message: string) {
+    public showToast(message: string) {
         this.toast.textContent = message;
         this.toast.classList.add("show");
         window.clearTimeout((this.toast as any)._hideTimer);

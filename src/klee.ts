@@ -53,6 +53,11 @@ export class Klee {
         return this.app.getPreviewState();
     }
 
+    /** Unreal clipboard text for the selected nodes; empty when nothing is selected. */
+    public get selectionText(): string {
+        return this.app.getSelectionText();
+    }
+
     /** True once any node has been dragged away from its authored position. */
     public get hasMovedNodes(): boolean {
         return this.app.hasMovedNodes;
