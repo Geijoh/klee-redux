@@ -283,3 +283,35 @@ test("a copied node reproduces its pasted text exactly, indentation included", (
 
     viewer.destroy();
 });
+
+test("the platform accelerator works on both Control and Command", () => {
+    const makeElement = installBrowserGlobals();
+    const Klee = require("../dist/klee.min.js");
+
+    const written = [];
+    navigator.clipboard.writeText = value => { written.push(value); return Promise.resolve(); };
+
+    const canvas = makeElement("canvas");
+    const viewer = Klee.init(canvas);
+    viewer.display(MATERIAL_GRAPH);
+    viewer.app.scene.selectOnly(viewer.app.scene.nodes[0]);
+
+    const press = modifiers => canvas.onkeydown({
+        code: "KeyC", ctrlKey: false, metaKey: false, altKey: false, shiftKey: false,
+        repeat: false, preventDefault() {}, ...modifiers,
+    });
+
+    press({ ctrlKey: true });
+    assert.equal(written.length, 1, "Control+C must copy");
+
+    press({ metaKey: true });
+    assert.equal(written.length, 2, "Command+C must copy too, for macOS");
+
+    press({});
+    assert.equal(written.length, 2, "an unmodified C must not copy");
+
+    assert.match(written[0], /^Begin Object Class=/);
+    assert.equal(written[0], written[1], "both accelerators produce the same text");
+
+    viewer.destroy();
+});

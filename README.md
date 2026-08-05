@@ -78,7 +78,8 @@ provide an honest unavailable state or attach a compatible renderer.
 
 ## Copying nodes back to Unreal
 
-Selecting nodes and pressing `Ctrl+C` copies them as Unreal clipboard text, so
+Selecting nodes and pressing `Ctrl+C`, or `Cmd+C` on macOS, copies them as
+Unreal clipboard text, so
 they paste straight into a graph in the editor. Each node contributes its
 original object block; links to nodes that were not copied are dropped on paste,
 exactly as they are when copying a partial selection inside Unreal.
